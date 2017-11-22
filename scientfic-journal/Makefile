@@ -10,4 +10,4 @@ all:
 clean: tidy
 	$(RM) ${PDF}
 tidy:
-	$(RM) *.aux *.dvi *.fdb *.fls *.log *.fdb_latexmk
+	$(RM) *.aux *.bbl *.bcf *.blg *.dvi *.fdb *.fdb_latexmk *.fls *.log *.out *.run.xml *.toc *_vimtex_*

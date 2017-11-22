@@ -1,8 +1,14 @@
 *.aux
 *.dvi
+*.bbl
+*.bcf
+*.blg
 *.fdb
 *.fls
 *.log
 *.fdb_latexmk
+*.out
 *.toc
 *vimtex*
+*.synctex.gz
+*.run.xml

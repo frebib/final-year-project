@@ -2,12 +2,16 @@
 \usepackage[margin=7.5em]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{babel}
+\usepackage{csquotes}
 \usepackage{isodate}
 
-\usepackage[hyphens]{url}
+\usepackage[backend=biber]{biblatex}
+\usepackage[hidelinks]{hyperref}
+\addbibresource{references.bib}
 
 \begin{document}
 
-Hello, World!
+\tableofcontents{}
 
+\printbibliography{}
 \end{document}
