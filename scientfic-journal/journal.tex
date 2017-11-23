@@ -11,7 +11,42 @@
 
 \begin{document}
 
-\tableofcontents{}
+\begin{abstract}
+This is an abstract
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+
+\section{Literature Review}
+\subsection{An Experimental User Level Implementation of TCP~\cite{braun:inria-00074040}}
+\subsection{Design and Implementation of the lwIP TCP/IP Stack~\cite{lwip}}
+
+\section{TCP Overview}
+
+\section{Implementation Detail}
+
+\section{Implementation Issues}
+\subsection{Hijacking the BSD \texttt{socket()} API calls} % chktex 36
+% 
+
+\subsection{Frames larger than the interface MTU}
+% Caused by 'segmentation offloading'
+% Affects TCP checksums on packets greater than MSS/MTU
+
+\subsection{Fighting the Linux TCP/IP stack RST packets}
+% Using iptables or libiptc to drop RST on specific ports
+%  - Port can't be used by the kernel and could clash?
+% Opening the socket to accept the connection
+%  - Eventually socket will timeout
+%  - Doesn't block any packets from actually getting out
+% Kernel module/extension to prevent RST being generated
+%  - Could be quicker but defeats isn't truly userspace
+
+\subsection{Efficiently sending and receiving packets through the kernel~\cite{tpacket}}
+% "it requires one system call to capture each packet, it requires two if you want to get packet's timestamp"
+% Use a zero-copy interface like Linux tpacket_v{1,2,3}
 
 \printbibliography{}
 \end{document}
