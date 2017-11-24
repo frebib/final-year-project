@@ -1,21 +1,36 @@
-\documentclass[10pt,a4paper,british]{article}
+\documentclass[10pt,a4paper,british]{bhamarticle}
 \usepackage[margin=7.5em]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{babel}
 \usepackage{csquotes}
 \usepackage{isodate}
 
-\usepackage[backend=biber]{biblatex}
+\usepackage[backend=biber,sorting=none]{biblatex}
 \usepackage[hidelinks]{hyperref}
 \addbibresource{references.bib}
 
+\title{netd: A TCP/IP networking stack implementation in userland}
+\author{Joe Groocock}
+\supervisor{Dr Ian Batten}
+\department{Computer Science}
+\degree{Computer Science MSci}
+\gyear{2017}
+
+\usepackage{lipsum}
+
 \begin{document}
+\pagenumbering{gobble}
+
+\maketitle
 
 \begin{abstract}
 This is an abstract
 \end{abstract}
 
 \tableofcontents
+\newpage
+
+\pagenumbering{arabic}
 
 \section{Introduction}
 
