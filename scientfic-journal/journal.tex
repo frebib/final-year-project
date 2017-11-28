@@ -1,13 +1,25 @@
-\documentclass[10pt,a4paper,british]{bhamarticle}
+\documentclass[11pt,a4paper,british]{bhamarticle}
 \usepackage[margin=7.5em]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{babel}
 \usepackage{csquotes}
 \usepackage{isodate}
 
-\usepackage[backend=biber,sorting=none]{biblatex}
+\usepackage[
+    backend=biber,
+    sorting=none,
+    citestyle=numeric-comp
+]{biblatex}
 \usepackage[hidelinks]{hyperref}
 \addbibresource{references.bib}
+
+% Fix paragraph spacing and use of noindent
+\usepackage[parfill]{parskip}
+\usepackage{titlesec}
+\setlength{\parskip}{1\smallskipamount plus \smallskipamount minus \smallskipamount}
+\titlespacing{\section}{0pt}{1.4\parskip}{0.2\parskip}
+\titlespacing{\subsection}{0pt}{1.4\parskip}{0.2\parskip}
+\titlespacing{\subsubsection}{0pt}{1.4\parskip}{0.2\parskip}
 
 \title{netd: A TCP/IP networking stack implementation in userland}
 \author{Joe Groocock}
@@ -16,15 +28,12 @@
 \degree{Computer Science MSci}
 \gyear{2017}
 
-\usepackage{lipsum}
-
 \begin{document}
 \pagenumbering{gobble}
 
 \maketitle
 
 \begin{abstract}
-This is an abstract
 \end{abstract}
 
 \tableofcontents
@@ -34,13 +43,10 @@ This is an abstract
 
 \section{Introduction}
 
+\pagebreak
 \section{Literature Review}
 % Difficult to find papers about TCP implementations as there aren't many
 % Focussed on userspace implementations as issues found are likely to be similar
-\subsection{An Experimental User Level Implementation of TCP~\cite{braun:inria-00074040}}
-\subsection{Design and Implementation of the lwIP TCP/IP Stack~\cite{lwip}}
-\subsection{mTCP: a Highly Scalable User-level TCP Stack for Multicore Systems} %chktex 13
-\cite{jeong2014mtcp} % chktex 2
 
 \section{TCP Overview}
 
@@ -63,9 +69,10 @@ This is an abstract
 % Kernel module/extension to prevent RST being generated
 %  - Could be quicker but defeats isn't truly userspace
 
-\subsection{Efficiently sending and receiving packets through the kernel~\cite{tpacket}}
+\subsection{Efficiently sending and receiving packets through the kernel interface}
+\cite{tpacket} % chktex 2
 % "it requires one system call to capture each packet, it requires two if you want to get packet's timestamp"
 % Use a zero-copy interface like Linux tpacket_v{1,2,3}
 
-\printbibliography{}
+\printbibliography % chktex 1
 \end{document}
