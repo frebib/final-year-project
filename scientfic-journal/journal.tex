@@ -34,6 +34,7 @@
 \maketitle
 
 \begin{abstract}
+    % TODO: Write coherent abstract
 \end{abstract}
 
 \tableofcontents
@@ -42,6 +43,8 @@
 \pagenumbering{arabic}
 
 \section{Introduction}
+
+% TODO: Fix tenses (to past, mostly)
 
 \pagebreak
 \section{Literature Review}
@@ -71,15 +74,84 @@ Many of the improvements suggested in this paper by \citeauthor{jeong2014mtcp} a
 % mTCP thread-local storage and multicore
 \citeauthor{jeong2014mtcp} show that with the use of multiple receive queues spread across individual CPU cores and fewer locks along with improved buffer management and fewer context switches between kernel and user mode can yield a much improved throughput compared to Linux and other user-mode concepts. Much of the improved performance is thanks to the use of \textit{thread local storage} of socket buffers, TCP buffer pools and other data structures relating to individual threads that are not shared. Greatly reduced usage of locks across threads, reducing \textit{Lock contention}, helps to minimise idle time in both incoming and outgoing packet processing.
 
+% mtcp
+% RR-2650
+% HP
+% lwIP
+% ##############
+
+% Goals
+%   (mtcp 2, 2.2, 3)
+
+% Performance!
+%   (RR-2650 5)
+%   Throughput
+%     Copying from kernel <-> user
+%       (RR-2650 4.1)
+%       (lwIP 2, 6, 12)
+% Security
+%   (HP 4.7)
+%   (RR-2650 1)
+
+% Comparison of kernel vs userspace
+%   Problems with each
+%       (lwIP 4)
+%   Limitations of kernel
+%     (mtcp 2.1)
+%   Limitations of userspace
+%     High-precision timers
+%       (mtcp 3.2.2)
+%       (RR-2650 4.2)
+%       (lwIP 5)
+%   Half-half implementations
+%     (HP 4.4.8)
+%     (RR-2650 1, 2)
+
+% API compatibility
+%   (mtcp 3.3, 4.1)
+%   (RR-2650 1)
+%   (lwIP 5)
+
 % Focussed on userspace implementations as issues found are likely to be similar
 
 \section{TCP Overview}
 
 \section{Implementation Detail}
+% List 'user' requirements
+% Produce a specification
+
+% Attaining packets
+% Demultiplexing packets
+% TCP timers
+
+% Why do we use the Linux kernel's TCP stack?
+% https://jvns.ca/blog/2016/06/30/why-do-we-use-the-linux-kernels-tcp-stack/
+% https://github.com/lkl/linux
+% https://news.ycombinator.com/item?id=12021195
+
+% Features I would like:
+%   - Multiple interfaces: tpacket, rawsock, rawinet, tun, tap
+%     - Defaults to tpacket, whichever version is supported as it
+%       is quickest, fallback to rawsock
+%   - Running as a system daemon or a standalone hook-in
+%     See also: https://github.com/lkl/linux/blob/master/tools/lkl/lib/hijack/hijack.c
+%     - Standalone will use libdl to override libc calls
+%       like socket(), recv() and listen() etc
+%       - Limitations on file descriptor and port number clashes
+%         - Use fds > FD_SETSIZE (1024)? Maybe ulimit will mess with us here
+%     - System daemon will connect to other programs either
+%       via compiled-in support through libnetstack or another
+%       binary that uses libdl and hooks syscalls, like standalone
+%   - Options:
+%     See also: https://tools.ietf.org/html/rfc7414
+%     - Window Scaling is a must. Performance relies on it
+%     - SACK
+%     - Timestamps?
+
 
 \section{Implementation Issues}
 \subsection{Hijacking the BSD \texttt{socket()} API calls} % chktex 36
-% 
+% Allocating file descriptors such that they don't clash with standard kernel fds
 
 \subsection{Frames larger than the interface MTU}
 % Caused by 'segmentation offloading'
@@ -88,6 +160,7 @@ Many of the improvements suggested in this paper by \citeauthor{jeong2014mtcp} a
 \subsection{Fighting the Linux TCP/IP stack RST packets}
 % Using iptables or libiptc to drop RST on specific ports
 %  - Port can't be used by the kernel and could clash?
+%  - outside of /proc/sys/net/ipv4/ip_local_port_range
 % Opening the socket to accept the connection
 %  - Eventually socket will timeout
 %  - Doesn't block any packets from actually getting out
@@ -98,6 +171,10 @@ Many of the improvements suggested in this paper by \citeauthor{jeong2014mtcp} a
 \cite{tpacket} % chktex 2
 % "it requires one system call to capture each packet, it requires two if you want to get packet's timestamp"
 % Use a zero-copy interface like Linux tpacket_v{1,2,3}
+%   BSD socket API doesn't allow for zero-copy as it has no notion of packet buffers and payload segmentation
+% Communicating data between daemon and user process without copy (SHM?)
+
+% Signal handling, such as SIGSTP breaking timing
 
 \printbibliography % chktex 1
 \end{document}
