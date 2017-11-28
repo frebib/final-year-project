@@ -1,19 +1,20 @@
 @techreport{braun:inria-00074040,
-  TITLE = {{An Experimental User Level Implementation of TCP}},
-  AUTHOR = {Braun, Torsten and Diot, Christophe and Hoglander, Anna and Roca, Vincent},
-  URL = {https://hal.inria.fr/inria-00074040},
-  NUMBER = {RR-2650},
-  INSTITUTION = {{INRIA}},
-  YEAR = {1995},
-  MONTH = Sep,
-  KEYWORDS = {TCP ; USER LEVEL. HIGH PERFORMANCE ; PROTOCOL IMPLEMENTATION ; ALF ; ILP},
-  PDF = {https://hal.inria.fr/inria-00074040/file/RR-2650.pdf},
-  HAL_ID = {inria-00074040},
-  HAL_VERSION = {v1},
+    TITLE = {{An Experimental User Level Implementation of TCP}},
+    AUTHOR = {Braun, Torsten and Diot, Christophe and Hoglander, Anna and Roca, Vincent},
+    URL = {https://hal.inria.fr/inria-00074040},
+    NUMBER = {RR-2650},
+    INSTITUTION = {{INRIA}},
+    YEAR = {1995},
+    MONTH = Sep,
+    KEYWORDS = {TCP ; USER LEVEL. HIGH PERFORMANCE ; PROTOCOL IMPLEMENTATION ; ALF ; ILP},
+    PDF = {https://hal.inria.fr/inria-00074040/file/RR-2650.pdf},
+    HAL_ID = {inria-00074040},
+    HAL_VERSION = {v1},
 }
 @misc{lwip,
-    title = {{Design and Implementation of the lwIP TCP/IP Stack}},
+    title = {Design and Implementation of the lwIP TCP/IP Stack},
     author = {Dunkels, Adam},
+    name = {lwIP},
     year = {2001},
     institution = {{SICS}},
     doi = {10.1.1.109.1795},
@@ -21,14 +22,51 @@
     url = {http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.109.1795}
 }
 @inproceedings{jeong2014mtcp,
-  title={mTCP: a Highly Scalable User-level TCP Stack for Multicore Systems.},
-  author={Jeong, EunYoung and Woo, Shinae and Jamshed, Muhammad Asim and Jeong, Haewon and Ihm, Sunghwan and Han, Dongsu and Park, KyoungSoo},
-  booktitle={NSDI},
-  pages={489--502},
-  year={2014}
+    title = {mTCP: a Highly Scalable User-level TCP Stack for Multicore Systems.},
+    author = {Jeong, EunYoung and Woo, Shinae and Jamshed, Muhammad Asim and Jeong, Haewon and Ihm, Sunghwan and Han, Dongsu and Park, KyoungSoo},
+    name = {mTCP},
+    booktitle = {NSDI},
+    pages = {489--502},
+    year = {2014}
+}
+@book{edwards1995experiences,
+    title = {Experiences implementing a high performance TCP in user-space},
+    author = {Edwards, Aled and Muir, Steve},
+    volume = {25},
+    number = {4},
+    year = {1995},
+    publisher = {ACM}
 }
 @manual{tpacket,
     title = {\texttt{packet\_mmap} documentation},
     author = {Linux Kernel Development Team},
     url = {https://www.kernel.org/doc/Documentation/networking/packet_mmap.txt}
+}
+
+@techreport{rfc675,
+    author = {Cerf, Vinton and Dalal, Yogen, and Sunshine, Carl},
+    title = {RFC 675: Specification of Internet Transmission control program},
+    year = {1974},
+    month = Dec,
+    type = {RFC},
+    number = 675,
+    pages = {1-70},
+    url = {https://tools.ietf.org/html/rfc675}
+}
+@techreport{rfc793,
+    author = {Postel, Jon and others},
+    title = {RFC 793: Transmission control protocol},
+    year = {1981},
+    month = Sep,
+    type = {RFC},
+    number = 793,
+    pages = {1-85},
+    url = {https://tools.ietf.org/html/rfc793}
+}
+@online{levelip-spec,
+    author = {Niiranen, Sami},
+    title = {Level-IP: A hacker's userspace TCP/IP stack},
+    publisher = {GitHub},
+    journal = {GitHub repository},
+    url = {https://github.com/saminiir/level-ip}
 }
