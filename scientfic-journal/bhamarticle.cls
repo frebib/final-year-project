@@ -129,8 +129,6 @@ definition]
           \vspace*{0.4em}
           \includegraphics[width=9em,height=9em]{crest.png}\\
           \vspace*{0.5em}
-          Submitted in conformity with the requirements\\
-          for the degree of {\@degree}\\
           School of {\@department}\\
           University of Birmingham\\
           \vfill
@@ -184,7 +182,7 @@ definition]
 \setlength{\evensidemargin}{-1cm} % 2cm margin on the right for even pages
 
 % 1.5 line spacing (ick!)
-\linespread{1.25}
+\linespread{1.15}
 
 % Marginal notes
 \setlength{\marginparwidth}{.75in} % width of marginal notes
