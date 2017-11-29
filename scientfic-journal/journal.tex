@@ -16,7 +16,7 @@
 % Fix paragraph spacing and use of noindent
 \usepackage[parfill]{parskip}
 \usepackage{titlesec}
-\setlength{\parskip}{1\smallskipamount plus \smallskipamount minus \smallskipamount}
+\setlength{\parskip}{1\medskipamount plus \smallskipamount minus \smallskipamount}
 \titlespacing{\section}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsection}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsubsection}{0pt}{1.4\parskip}{0.2\parskip}
@@ -48,7 +48,7 @@
 
 \pagebreak
 \section{Literature Review}
-% Difficult to find papers about TCP implementations as there aren't many
+\subsection{A brief look at related works}
 % RFC675 overview
 When TCP was originally proposed in December 1974 by \citeauthor{rfc675} in RFC 675~\cite{rfc675} that defined flow diagrams and implementation suggestions but did not provide specific pseudo-code routines that could be implemented directly. At that time TCP was young and naive due to having little exposure to real-world use cases. Furthermore the limitations of the technology of the era were apparent in the original design given the scope and proposed use of the protocol, compared to the significantly higher speed demands in 2017.
 
@@ -65,7 +65,7 @@ Conversely some alternate implementations exist for quite the opposite reasons s
 
 Many of the improvements suggested in this paper by \citeauthor{jeong2014mtcp} are very intelligent applications of high speed network adapters and multicore processor systems such as servers. Any TCP network stack that is to be run in these kinds of scenarios should consider these optimisations for improved performance. It is likely that many of the proposed enhancements would also benefit low-power single CPU systems too with most likely reduced latency and reduced memory usage.
 
-% Demultiplexing TCP in the kernel
+\subsection{Demultiplexing TCP}
 \citeauthor{braun:inria-00074040} designed a modified BSD TCP/IP stack where the IP layer resides in the kernel and TCP is split in two between kernel and userspace into TCPU and TCPK respectively. TCP processing is moved mostly into the user region, residing as local code in the calling process. The only exception to this is the `demultiplexing' step, TCPK, where TCP frames are routed to the correct user program based on the ports and addresses from the IP layer packet, providing security for the receiving process.
 
 % Demultiplexing in userspace, or not
@@ -112,6 +112,7 @@ Many of the improvements suggested in this paper by \citeauthor{jeong2014mtcp} a
 %   (RR-2650 1)
 %   (lwIP 5)
 
+% Difficult to find papers about TCP implementations as there aren't many
 % Focussed on userspace implementations as issues found are likely to be similar
 
 \section{TCP Overview}
