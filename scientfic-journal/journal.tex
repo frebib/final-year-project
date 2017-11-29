@@ -1,6 +1,7 @@
 \documentclass[11pt,a4paper,british]{bhamarticle}
-\usepackage[margin=7.5em]{geometry}
+\usepackage[margin=7em]{geometry}
 \usepackage[utf8]{inputenc}
+\usepackage{multicol}
 \usepackage{babel}
 \usepackage{csquotes}
 \usepackage{isodate}
@@ -15,8 +16,9 @@
 
 % Fix paragraph spacing and use of noindent
 \usepackage[parfill]{parskip}
-\usepackage{titlesec}
-\setlength{\parskip}{1\medskipamount plus \smallskipamount minus \smallskipamount}
+\usepackage[raggedright]{titlesec}
+\setlength{\columnsep}{18pt}
+\setlength{\parskip}{1\medskipamount}
 \titlespacing{\section}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsection}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsubsection}{0pt}{1.4\parskip}{0.2\parskip}
@@ -41,6 +43,7 @@
 \newpage
 
 \pagenumbering{arabic}
+\begin{multicols}{2}
 
 \section{Introduction}
 Transmission Control Protocol is an essential component of the modern internet used every day on all class of devices. It is the primary component in ensuring data is delivered reliably, in order and error-checked from end-to-end. TCP is often referred to as TCP/IP as it is tightly coupled with the lower layer \textit{Internet Protocol} that provides addressing and packet routing across large networks, like the public internet.
@@ -64,7 +67,7 @@ Multiple similar programs exist that provide many of the same features, but none
 
 % TODO: Fix tenses (to past, mostly)
 \section{Literature Review}
-\subsection{A brief look at related works}
+\subsection{\mbox{A brief look at related works}}
 % RFC675 overview
 When TCP was originally proposed in December 1974, by \citeauthor{rfc675} in RFC 675~\cite{rfc675}, flow diagrams and implementation suggestions were defined but lacked specific pseudo-code routines that could be implemented directly, were not provided. At that time TCP was young and naive due to having little exposure to real-world use cases. Furthermore, the limitations of the technology of the era were apparent in the original design given the scope and proposed use of the protocol, compared to the significantly higher speed demands in 2017.
 
@@ -102,7 +105,7 @@ A common theme across many protocol implementations is the focus on reducing ove
 
 Due to the limitations of the BSD socket API, \textit{zero-copy} networking is not trivially implemented without some significant changes to how data is copied into the user memory, although there is one solution that harnesses the power of hardware offload. Using a feature of virtual memory to remap memory pages, data can be offloaded by the network interface directly into aligned memory pages, separating header from the payload~\cite[2.3]{chase2001end}. Specific hardware and driver support is required for this, and even more complex connection tracking is required for TCP offload. A result of the memory page mapping is large contiguous blocks of memory containing packet payloads produced without a single data copy.
 
-\subsection{TCP security considerations}
+\subsection{\mbox{TCP security considerations}}
 By moving processing from kernel to userspace, protections such as obscurity from other programs is reduced. \citeauthor{braun:inria-00074040} raise the issue that with a userspace TCP process, data for multiple connections is loaded into the memory space of a single process enabling it to be viewed or modified by any privileged program~\cite[1, 2.1]{braun:inria-00074040}. In most cases this is not a significant issue however it should still be considered. The only plausible solution is to move the demultiplexing stage back into the kernel to restore the connection security.
 
 % Comparison of kernel vs userspace
@@ -180,4 +183,5 @@ By moving processing from kernel to userspace, protections such as obscurity fro
 % Signal handling, such as SIGSTP breaking timing
 
 \printbibliography % chktex 1
+\end{multicols}
 \end{document}
