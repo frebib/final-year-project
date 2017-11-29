@@ -1,6 +1,7 @@
 \documentclass[11pt,a4paper,british]{bhamarticle}
-\usepackage[margin=7.5em]{geometry}
+\usepackage[margin=7em]{geometry}
 \usepackage[utf8]{inputenc}
+\usepackage{multicol}
 \usepackage{babel}
 \usepackage{csquotes}
 \usepackage{isodate}
@@ -16,7 +17,7 @@
 % Fix paragraph spacing and use of noindent
 \usepackage[parfill]{parskip}
 \usepackage{titlesec}
-\setlength{\parskip}{1\medskipamount plus \smallskipamount minus \smallskipamount}
+\setlength{\parskip}{0.8em plus \smallskipamount minus \smallskipamount}
 \titlespacing{\section}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsection}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsubsection}{0pt}{1.4\parskip}{0.2\parskip}
@@ -41,6 +42,8 @@
 \newpage
 
 \pagenumbering{arabic}
+\setlength{\columnsep}{2em}
+\begin{multicols}{2}
 
 \section{Introduction}
 Transmission Control Protocol is an essential component of the modern internet used every day on all class of devices. It is the primary component in ensuring data is delivered reliably, in order and error-checked from end-to-end. TCP is often referred to as TCP/IP as it is tightly coupled with the lower layer \textit{Internet Protocol} that provides addressing and packet routing across large networks, like the public internet.
@@ -180,4 +183,5 @@ By moving processing from kernel to userspace, protections such as obscurity fro
 % Signal handling, such as SIGSTP breaking timing
 
 \printbibliography % chktex 1
+\end{multicols}
 \end{document}
