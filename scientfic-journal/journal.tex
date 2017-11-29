@@ -61,7 +61,7 @@ Not all TCP/IP stacks are created equal; there are numerous incentives for devel
 % TODO: Maybe talk about uIP here, if I have space/time/the will to live
 
 % mTCP goals
-Conversely some alternate implementations exist for quite the opposite reasons such as `mTCP', \citeauthor{jeong2014mtcp} constructed as `a highly scalable user-level TCP stack for multicore systems'. \citeauthor{jeong2014mtcp} intended mTCP to outperform competing solutions in packet throughput and data volume. According to their claims, mTCP can surpass Linux by a factor of 25 in `small message transactions' and also boosting regular performance of popular applications between 33\% and 320\%. Such performance numbers are impressive, especially considering the widespread use of Linux for commercial applications and hosting, which begs the question: ``Why is it significantly faster than the default Linux implementation and why hasn't Linux caught up yet?''
+Conversely some alternate implementations exist for quite the opposite reasons such as `mTCP', \citeauthor{jeong2014mtcp} constructed as `a highly scalable user-level TCP stack for multicore systems'. They intended for mTCP to outperform competing solutions in packet throughput and data volume. According to their claims, mTCP can surpass Linux by a factor of 25 in `small message transactions' and also boosting regular performance of popular applications between 33\% and 320\%. Such performance numbers are impressive, especially considering the widespread use of Linux for commercial applications and hosting, which begs the question: ``Why is it significantly faster than the default Linux implementation and why hasn't Linux caught up yet?''~\cite[2.2, 3]{jeong2014mtcp}
 
 Many of the improvements suggested in this paper by \citeauthor{jeong2014mtcp} are very intelligent applications of high speed network adapters and multicore processor systems such as servers. Any TCP network stack that is to be run in these kinds of scenarios should consider these optimisations for improved performance. It is likely that many of the proposed enhancements would also benefit low-power single CPU systems too with most likely reduced latency and reduced memory usage.
 
@@ -73,35 +73,21 @@ Many of the improvements suggested in this paper by \citeauthor{jeong2014mtcp} a
 
 \subsection{Throughput performance}
 Much of the research surrounding TCP, particularly that providing userspace implementation detail, is focussed on optimising the protocol for high performance and high throughput. \citeauthor{edwards1995experiences}, in \citeyear{edwards1995experiences} demonstrated throughput of 160 Mbit/s using a userspace TCP implementation running over coaxial token-ring ATM networking, making use of the solid existing HP-UX kernel TCP code along with single-copy from the NIC to the user application using shared memory in the TCP stack and the application. This particular arrangement managed 80\% of the performance of the existing single-copy TCP stack and 150\% of the double-copy kernel stack. \citeauthor{braun:inria-00074040} in \citeyear{braun:inria-00074040} yielded similar results of around 40-50\%~\cite[5]{braun:inria-00074040} between the default kernel and TCPU/TCPK stacks running on much less powerful hardware.
+% TODO: Talk about lwIP here (2,6,12)
+%     Copying from kernel <-> user
 
 % mTCP thread-local storage and multicore
 \citeauthor{jeong2014mtcp} show that with the use of multiple receive queues spread across individual CPU cores and fewer locks along with improved buffer management and fewer context switches between kernel and user mode their implementation can yield a much improved throughput compared to Linux and other user-mode concepts. Much of the improved performance is thanks to the use of \textit{thread local storage} of socket buffers, TCP buffer pools and other data structures relating to individual threads that are not shared. Greatly reduced usage of locks across threads, reducing \textit{Lock contention}, helps to minimise idle time in both incoming and outgoing packet processing.
 
 \subsection{Reducing data copying overhead}
-A common theme across many protocol implementations is the focus on reducing overhead due to data copying. Any copied data is potential wasted time, especially if the same functionality could be programmed using a \textidt{zero-copy} approach where incoming packets are deposited directly from the network adapter into the user program without being duplicated one or more times. Many of the related works include some variation of a transmit/receive queue utilised by every layer from the NIC to the user program, minimal or zero data copying. \citeauthor{jeong2014mtcp} utilised an event-driven packet I/O library to divide incoming batches of packet into multiple queues written directly from the network interface and passed directly through into the user TCP~\cite[3.1]{jeong2014mtcp}.
+A common theme across many protocol implementations is the focus on reducing overhead due to data copying. Any copied data is potential wasted time, especially if the same functionality could be programmed using a \textit{zero-copy} approach where incoming packets are deposited directly from the network adapter into the user program without being duplicated one or more times. Many of the related works include some variation of a transmit/receive queue utilised by every layer from the NIC to the user program, minimal or zero data copying. \citeauthor{jeong2014mtcp} utilised an event-driven packet I/O library to divide incoming batches of packet into multiple queues written directly from the network interface and passed directly through into the user TCP~\cite[3.1]{jeong2014mtcp}.
 
 \citeauthor{braun:inria-00074040} took a different approach to reducing data copying where typically packet buffers are copied twice: once from the device to an input buffer queue then secondly into the application buffer. In certain situations by the process of \textit{header prediction} the kernel copies the header data only then assuming the predicted header size was correct, enclosed packet data is copied directly into the user program receive buffer~\cite[4.1]{braun:inria-00074040}. By modern standards this is less than optimal as now there exists suitable methods to skip copying entirely and use memory-mapped buffers.
 
 Due to the limitations of the BSD socket API, \textit{zero-copy} networking is not trivially implemented without some significant changes to how data is copied into the user memory, although there is one solution that harnesses the power of hardware offload. Using a feature of virtual memory to remap memory pages, data can be offloaded by the network interface directly into aligned memory pages, separating header from the payload~\cite[2.3]{chase2001end}. Specific hardware and driver support is required for this, and even more complex connection tracking is required for TCP offload. A result of the memory page mapping is large contiguous blocks of memory containing packet payloads produced without a single data copy.
 
-% mtcp
-% RR-2650
-% HP
-% lwIP
-% ##############
-
-% Goals
-%   (mtcp 2, 2.2, 3)
-
-% Performance!
-%   (RR-2650 5)
-%   Throughput
-%     Copying from kernel <-> user
-%       (RR-2650 4.1)
-%       (lwIP 2, 6, 12)
-% Security
-%   (HP 4.7)
-%   (RR-2650 1)
+\subsection{TCP security considerations}
+By moving processing from kernel to userspace, protections such as obscurity from other programs is reduced. \citeauthor{braun:inria-00074040} raise the issue that with a userspace TCP process, data for multiple connections is loaded into the memory space of a single process enabling it to be viewed or modified by any privileged program~\cite[1, 2.1]{braun:inria-00074040}. In most cases this is not a significant issue however it should still be considered. The only plausible solution is to move the demultiplexing stage back into the kernel to restore the connection security.
 
 % Comparison of kernel vs userspace
 %   Problems with each
@@ -116,14 +102,6 @@ Due to the limitations of the BSD socket API, \textit{zero-copy} networking is n
 %   Half-half implementations
 %     (HP 4.4.8)
 %     (RR-2650 1, 2)
-
-% API compatibility
-%   (mtcp 3.3, 4.1)
-%   (RR-2650 1)
-%   (lwIP 5)
-
-% Difficult to find papers about TCP implementations as there aren't many
-% Focussed on userspace implementations as issues found are likely to be similar
 
 \section{TCP Overview}
 
