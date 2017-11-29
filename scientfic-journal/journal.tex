@@ -21,7 +21,7 @@
 \titlespacing{\subsection}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsubsection}{0pt}{1.4\parskip}{0.2\parskip}
 
-\title{netd: A TCP/IP networking stack implementation in userland}
+\title{A TCP/IP networking stack implementation in userland}
 \author{Joe Groocock}
 \supervisor{Dr Ian Batten}
 \department{Computer Science}
@@ -43,10 +43,26 @@
 \pagenumbering{arabic}
 
 \section{Introduction}
+Transmission Control Protocol is an essential component of the modern internet used every day on all class of devices. It is the primary component in ensuring data is delivered reliably, in order and error-checked from end-to-end. TCP is often referred to TCP/IP as it is tightly coupled with the lower layer \textit{Internet Protocol} that provides addressing and packet routing across large networks, like the public internet.
+
+Over the years, TCP has been adapted and upgraded with extensions and variations to make it run more efficiently and intelligently with improvements such as complex \textit{congestion control} algorithms to prevent systems and routers from getting overwhelmed, \textit{window scaling} to allow fast communicating clients to buffer more than the baseline 64 Kilobyte limit and \textit{Nagle's Algorithm}~\cite{rfc896} responsible for queuing small payloads of data together before sending to reduce multiple successive small packets being dispatched, amongst a long list of others extensions, some of which are defunct or have been replaced.
+
+Every connected operating system contains a TCP/IP implementation, from it's vendor however most are based on the original Berkely TCP implementation from BSD Unix~\cite{rfc793} and have been adapted to work more efficiently in modern workloads. TCP is a solid protocol that is backwards compatible by design so any devices back to the early 1980s should still be able to communicate with modern systems. TCP implementations in most devices are well-written and have the benefit of almost 40 years of experience and incremental improvements and for general-use computing such as web browsing, downloading files these are sufficient and have been optimised such.
+
+Implementations in every major operating system allow interaction with TCP via an \textit{Application Programming Interface} or API to communicate however none of them allow access to view or modify the lower-level inner workings of the protocol. There are some use-cases where being able to interact, preview and utilise TCP can be useful, especially in software development and academic projects where low-level protocol access benefits the project.
+
+\subsection{Aim}
+The primary aim of this project is to provide, as a software library, a callable, interactive TCP/IP stack that can be used standalone, as a system daemon for use by multiple processes or to be picked apart and analysed for educational purposes. The code will be provided in a modular way such that parts can be called as desired, or replaced with alternative implementations as to observe the difference between the two.
+
+There exists multiple similar programs that provide many of the same features but none that are drop-in replacements for the in-built kernel stack that can be run without configuration as a userland application without the need for recompilation of the calling process. This project aim's to provide a very simple user experience where the network stack can be invoked at runtime to replace the traditional system calls:
+
+\begin{center}
+\texttt{\$ netstack curl -vv google.com}
+\end{center}
+
+\section{TCP Overview}
 
 % TODO: Fix tenses (to past, mostly)
-
-\pagebreak
 \section{Literature Review}
 \subsection{A brief look at related works}
 % RFC675 overview
@@ -102,8 +118,6 @@ By moving processing from kernel to userspace, protections such as obscurity fro
 %   Half-half implementations
 %     (HP 4.4.8)
 %     (RR-2650 1, 2)
-
-\section{TCP Overview}
 
 \section{Implementation Detail}
 % List 'user' requirements
