@@ -248,6 +248,19 @@ The segment size in this case is the \textit{Maximum Segment Size} calculated by
 \subsubsubsection{TCP Corking}
 Linux implements a feature typically referred to as \texttt{TCP\_CORK} which is similar in nature to the operation of Nagle's Algorithm. The ultimate goal of corking is the same as Nagle, but is achieved in a different way. Corking will always buffer data, even after the reception of an acknowledgment, until there is enough to fill a segment or until the timeout has passed.  Linux uses a default corking timeout of 200ms.
 
+\subsubsection{Congestion Control}
+One of the final main features of TCP is the ability to survive and recover from network congestion with the use of complex control algorithms. Congestion control actually refers to a set of tools that a TCP should have, discussed in detail in the following sections:
+
+\subsubsubsection{Slow Start}
+A connection between two nodes is limited by the speed of the slowest intermediary node, such as a router, network interface or switch. To avoid overwhelming any of these devices resulting in packet loss, a TCP should assume the worst-case and start transmitting slowly. Congestion controlled TCP implementations maintain \textit{congestion window} which is the representation to the sender of the state of congestion in the network between the connected peers.
+
+Slow start initialises a small congestion window, usually a small multiple of the MSS\@. Each time data is transmitted, the sender only releases at most the amount specified by the congestion window. For each acknowledgment received for all transmitted data, the congestion window is increased, often by a factor of two. Each subsequent transmission will be larger than the previous as the congestion window increases. When a lost segment is detected, slow start will stop and the standard linear growth Congestion Avoidance algorithm will kick in.
+
+\subsubsubsection{Congestion Avoidance}
+There have been many varying implementations of Congestion Avoidance algorithms with ranging feature sets for different scenarios. Some offer fast recovery, smaller loss or improved throughput. The aim of these algorithms is to continue a stable transmission between the two hosts whilst preventing subsequent packet loss by over-sending and overloading the network.
+
+Popular algorithms for this are: Vegas, BIC, CUBIC, Westwood, Reno, Tahoe and New Reno. Typically `New Reno' is used in Unix systems today as it provides the best performance and stability with minimal changes required to either sender or receiver.
+
 \subsection{Connection states}
 
 % TODO: Fix tenses (to past, mostly)
