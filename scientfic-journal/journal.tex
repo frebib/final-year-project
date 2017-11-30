@@ -21,6 +21,19 @@
 \usepackage[hidelinks]{hyperref}
 \addbibresource{references.bib}
 
+\setcounter{secnumdepth}{4}
+\makeatletter
+\newcounter{subsubsubsection}[subsubsection]
+\def\thesubsubsubsection{\thesubsubsection.\arabic{subsubsubsection}}
+\newcommand\subsubsubsection{%
+    \@startsection{subsubsubsection}{4}
+        {\z@}{1.4\parskip}{0.2\parskip}
+        {\normalfont\normalsize\bfseries}
+}
+\newcommand*\l@subsubsubsection{\@dottedtocline{3}{10.0em}{4.1em}}
+\newcommand*{\subsubsubsectionmark}[1]{}
+\makeatother
+
 % Fix paragraph spacing and use of noindent
 \usepackage[parfill]{parskip}
 \usepackage[raggedright]{titlesec}
@@ -29,6 +42,7 @@
 \titlespacing{\section}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsection}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsubsection}{0pt}{1.4\parskip}{0.2\parskip}
+\titlespacing{\subsubsubsection}{0pt}{1.4\parskip}{0.2\parskip}
 
 \title{A TCP/IP networking stack implementation in userland}
 \author{Joe Groocock}
@@ -220,7 +234,23 @@ TCP has a vast array of extensions, specified in the `Option' field in the packe
 \subsubsection{Window Scaling}
 At the advent of TCP, networks were comparatively slow of only a few Megabits per second however technology has advanced and now links are available in excess of 100 Gigabits per second. The default \textit{Window size} defined in TCP is only 64KiB which at 100Gbps can be filled in just 5 microseconds which can slow down transmission dramatically as the buffer has to be cleared before it can be filled again. To leverage these blistering transfer speeds, Window Scaling~\cite[2]{rfc1323} was introduced to increase the size of the default receive window. 
 
+Window scaling must be negotiated during the initial handshake of the connection; a client requests wscale in the first \texttt{SYN} packet to which the peer replies with a wscale option in the returning \texttt{SYN}/\texttt{ACK} segment, confirming the choice to use scaling for the remainder of the connection. Should no reply to the wscale option be sent, it is assumed the peer does not support window scaling and therefore the connection must operate without scaling.
+
 The option specifies a scale value between 0 and 14 which should be applied as a \textit{bitwise left shift} to the window size allowing a maximum receive window size of 1GiB ($65536 << 14$). It is completely valid to negotiate a `zero' shift in one direction to disable scaling for one client.
+
+\subsubsection{Selective \texttt{ACK}}\label{sec:sack}
+Acknowledgements are part of the reason TCP is so useful, but in particularly poor network conditions, the performance of TCP can suffer from excessive retransmissions, driving latency up and throughput down. Often in lossy transfers only a small amount of packets will be lost but TCP defines that data should be acknowledged until that point and all data afterwards will be retransmitted. It is often that most or all data after a missing packet will have arrived successfully but would be unnecessarily retransmitted.
+
+Selective \texttt{ACK} aims to reduce and abolish retransmissions for data that has already arrived by indicating to the sender which blocks have and have not arrived. It is an option appended specifically to \texttt{ACK} packets to give more detail about which byte ranges should be retransmitted. The option has a variable payload length to allow inclusion of the left and right boundaries of each block that is being acknowledged.
+
+\subsubsection{Nagle's Algorithm}
+\citeauthor{rfc896} proposed in \citeyear{rfc896} the concept of reducing the amount of small packets being transmitted by buffering outgoing data for a small period of time before sending it. This is today known as \textit{Nagle's Algorithm} which is defined to address the `small packet problem' by not transmitting new data whilst there is still unacknowledged data in transmission. Sent data is queued indefinitely in the transmit buffer until an acknowledgment is received or until the buffer contains enough data to fill at least one segment.
+
+The segment size in this case is the \textit{Maximum Segment Size} calculated by the lowest MTU in the route between the two communicating nodes, minus the header sizes. MSS tends to be 1460, or less, assuming the standard Ethernet (IEEE 802.3) MTU of 1500 is used.
+
+\subsubsubsection{TCP Corking}
+Linux implements a feature typically referred to as \texttt{TCP\_CORK} which is similar in nature to the operation of Nagle's Algorithm. The ultimate goal of corking is the same as Nagle, but is achieved in a different way. Corking will always buffer data, even after the reception of an acknowledgment, until there is enough to fill a segment or until the timeout has passed.  Linux uses a default corking timeout of 200ms.
+
 \subsection{Connection states}
 
 % TODO: Fix tenses (to past, mostly)
