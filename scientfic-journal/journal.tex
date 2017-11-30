@@ -69,7 +69,7 @@ Multiple similar programs exist that provide many of the same features, but none
 \texttt{\$ netstack curl -vv \url{github.com}}
 
 \section{TCP Overview}
-Modern TCP is a very complex protocol with many extensions and experimental variations. This overview mostly covers the essentials as defined by the original specification, RFC~793~\cite{rfc793}. Extensions or variations are very useful for improving performance and reliability but absolutely not required for a functioning TCP.
+Modern TCP is a very complex protocol with many extensions and experimental variations. This overview mostly covers the essentials as defined by the original specification, RFC~793~\cite{rfc793}. Extensions or variations are very useful for improving performance and reliability but absolutely not required for a functioning TCP. % chktex 13
 
 \subsection{Terminology}
 \begin{itemize}
@@ -99,7 +99,7 @@ Most of the information carried in the header is metadata for identifying the co
     \item \textbf{Window} \textit{2 bytes} Size, in bytes, of the receive window available to fill.
     \item \textbf{Checksum} \textit{2 bytes} The \textit{internet checksum}~\cite{internetchecksum} of the entire TCP segment and the upper \textit{Internet Protocol} layer. Used to ensure (probable) integrity of the data from corruption.
     \item \textbf{Urgent Pointer} \textit{2 bytes} Indicates the offset from the \textit{Sequence number} of the last urgent byte when the \texttt{URG} flag is set.
-    \item \textbf{Options} \textit{0-40 bytes} Optionally, a series of TCP extension options followed by padding to the nearest 4th byte.
+    \item \textbf{Options} \textit{0-40 bytes} Optionally, a series of TCP extension options followed by padding to the nearest 4th byte.% chktex 8
 \end{itemize}
 
 %   0                   1                   2                   3
@@ -180,8 +180,7 @@ One of the defining features of TCP is the famous \textit{three-way handshake}~(
             \end{tabular}
         };
     \end{tikzpicture}
-    \caption{Three-way handshake}
-    \label{fig:threeway}
+    \caption{Three-way handshake}\label{fig:threeway}
 \end{figure}
 
 A client requests a new connection by sending an initial packet with the \texttt{SYN} bit set as well as an initial random \textit{Sequence number}. When a packet marked with \texttt{SYN} is received at the server, a new connection is being established and the server replies with a \texttt{SYN}/\texttt{ACK} packet. This reply does one of two things:
