@@ -1,9 +1,17 @@
 \documentclass[11pt,a4paper,british]{bhamarticle}
-\usepackage[margin=7.5em]{geometry}
+\usepackage[margin=7em]{geometry}
 \usepackage[utf8]{inputenc}
+\usepackage{multicol}
+\usepackage{float}
 \usepackage{babel}
 \usepackage{csquotes}
 \usepackage{isodate}
+
+\usepackage{tikz}
+\usetikzlibrary{calc,arrows}
+
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=*}
 
 \usepackage[
     backend=biber,
@@ -13,13 +21,28 @@
 \usepackage[hidelinks]{hyperref}
 \addbibresource{references.bib}
 
+\setcounter{secnumdepth}{4}
+\makeatletter
+\newcounter{subsubsubsection}[subsubsection]
+\def\thesubsubsubsection{\thesubsubsection.\arabic{subsubsubsection}}
+\newcommand\subsubsubsection{%
+    \@startsection{subsubsubsection}{4}
+        {\z@}{1.4\parskip}{0.2\parskip}
+        {\normalfont\normalsize\bfseries}
+}
+\newcommand*\l@subsubsubsection{\@dottedtocline{3}{10.0em}{4.1em}}
+\newcommand*{\subsubsubsectionmark}[1]{}
+\makeatother
+
 % Fix paragraph spacing and use of noindent
 \usepackage[parfill]{parskip}
-\usepackage{titlesec}
-\setlength{\parskip}{1\medskipamount plus \smallskipamount minus \smallskipamount}
+\usepackage[raggedright]{titlesec}
+\setlength{\columnsep}{18pt}
+\setlength{\parskip}{1\medskipamount}
 \titlespacing{\section}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsection}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsubsection}{0pt}{1.4\parskip}{0.2\parskip}
+\titlespacing{\subsubsubsection}{0pt}{1.4\parskip}{0.2\parskip}
 
 \title{A TCP/IP networking stack implementation in userland}
 \author{Joe Groocock}
@@ -41,36 +64,204 @@
 \newpage
 
 \pagenumbering{arabic}
+\begin{multicols}{2}
 
 \section{Introduction}
 Transmission Control Protocol is an essential component of the modern internet used every day on all class of devices. It is the primary component in ensuring data is delivered reliably, in order and error-checked from end-to-end. TCP is often referred to as TCP/IP as it is tightly coupled with the lower layer \textit{Internet Protocol} that provides addressing and packet routing across large networks, like the public internet.
 
 Over the years, TCP has been adapted and upgraded with extensions and variations to make it run more efficiently and intelligently, with improvements such as complex \textit{congestion control} algorithms to prevent systems and routers from getting overwhelmed, \textit{window scaling} to allow fast communicating clients to buffer more than the baseline 64 Kilobyte limit and \textit{Nagle's Algorithm}~\cite{rfc896} responsible for queuing small payloads of data together before sending to reduce multiple successive small packets being dispatched, amongst a long list of others extensions, some of which are defunct or have been replaced.
 
-Every connected operating system contains a TCP/IP implementation, from it's vendor, however, most are based on the original Berkely TCP implementation from BSD Unix~\cite{rfc793} and have been adapted to work more efficiently in modern workloads. TCP is a solid protocol that is backwards compatible by design so any devices, dating back to the early 1980s, should still be able to communicate with modern systems. TCP implementations in most devices are well-written and have the benefit of almost 40 years of experience and incremental improvements. For general-use computing such as web browsing and downloading files, these improvements are sufficient and have been optimised as such.
+Every connected operating system contains a TCP/IP implementation from it's vendor, however most are based on the original Berkely TCP implementation from BSD Unix~\cite{rfc793} and have been adapted to work more efficiently in modern workloads. TCP is a solid protocol that is backwards compatible by design so any devices, dating back to the early 1980s, should still be able to communicate with modern systems. TCP implementations in most devices are well-written and have the benefit of almost 40 years of experience and incremental improvements. For general-use computing such as web browsing and downloading files, these improvements are sufficient and have been optimised as such.
 
-Implementations in every major operating system allow for interaction with TCP via an \textit{Application Programming Interface}, or API, to communicate. However, none of them allow access to view or modify the lower-level inner workings of the protocol. There are some use-cases where being able to interact, preview and utilise TCP can be useful, especially in software development and academic projects where low-level protocol access would be beneficial.
+Implementations in every major operating system allow for interaction with TCP via an \textit{Application Programming Interface} or API, to communicate with the enclosed network stack, however none of them allow access to view or modify the lower-level inner workings of the protocol. There are some use-cases where being able to interact, preview and utilise TCP can be useful, especially in software development and academic projects where low-level protocol access would be beneficial.
 
 \subsection{Aim}
-The primary aim of this project is to provide, as a software library, a callable, interactive TCP/IP stack that can be used stand-alone, as a system daemon, for use by multiple processes, or to be picked apart and analysed for educational purposes. The code will be provided in a modular way such that parts can be called as desired, or replaced with alternative implementations as to observe the difference between the two.
+The primary aim of this project is to provide, as a software library, a callable, interactive TCP/IP stack that can be used standalone, as a system daemon, for use by multiple processes, or to be picked apart and analysed for educational purposes. The code will be provided in a modular way such that parts can be called as desired, or replaced with alternative implementations as to observe the difference between the two.
 
 Multiple similar programs exist that provide many of the same features, but none that are drop-in replacements for the inbuilt kernel stack that can be run without configuration as a userland application without the need for recompilation of the calling process. This project's aim is to provide a very simple user experience, where the network stack can be invoked at runtime to replace the traditional system calls:
 
 \begin{center}
-\texttt{\$ netstack curl -vv google.com}
+    \texttt{\$ netstack curl -vv \url{github.com}}
 \end{center}
 
 \section{TCP Overview}
+Modern TCP is a very complex protocol with many extensions and experimental variations. This overview mostly covers the essentials as defined by the original specification, RFC~793~\cite{rfc793}. Extensions or variations are very useful for improving performance and reliability but absolutely not required for a functioning TCP. % chktex 13
+
+\subsection{Terminology}
+\begin{itemize}
+    \item \texttt{SYN}: Synchronise\\
+        \textit{Set to establish a new connection}
+    \item \texttt{FIN}: Finish\\
+        \textit{Indicate closure of existing connection}
+    \item \texttt{ACK}: Acknowledgement\\
+        \textit{Confirming that data arrived successfully or a acknowledging a command}
+    \item \texttt{RST}: Reset\\
+        \textit{Sent in reply to an invalid connection}
+    \item Bit field: \textit{Data where each individual bit represents a boolean value e.g. 0 or 1}
+\end{itemize}
+
+\subsection{TCP packet header}
+A TCP packet, or segment, contains an initial header followed by the packet payload. The header can be a variable length but is always at least 20 bytes and at most 60 bytes so small payloads are an inefficient use of a segment as there is always a 20+ byte overhead, per packet.
+
+Most of the information carried in the header is metadata for identifying the connection and the data within the packet. Many of the values such as Sequence Number, Window size etc correspond to the sender; each peer will have their own individual values. In order of appearance, the fields in the header are as follows:
+
+\begin{itemize}
+    \item \textbf{Source Port} \textit{2 bytes} Port from which this packets was dispatched.
+    \item \textbf{Destination Port} \textit{2 bytes} Port number open to receive on the recipient device.
+    \item \textbf{Sequence Number} \textit{4 bytes} Sequential count of the first byte in the payload, identifying the sequence position of the segment.
+    \item \textbf{Acknowledgement number} \textit{4 bytes} Sequential count of successfully received bytes.
+    \item \textbf{Data offset} \textit{4 bits} Size of the TCP header in 32-bit words, as the header is padded to multiples of 4 bytes. This indicates the start of the payload and the end of the header within the packet.
+    \item \textbf{Flags} \textit{12 bits} A \textit{bit field} containing the following control flags: \texttt{FIN}, \texttt{SYN}, \texttt{RST}, \texttt{PSH}, \texttt{ACK} and \texttt{URG}.
+    \item \textbf{Window} \textit{2 bytes} Size, in bytes, of the receive window available to fill.
+    \item \textbf{Checksum} \textit{2 bytes} The \textit{internet checksum}~\cite{internetchecksum} of the entire TCP segment and the upper \textit{Internet Protocol} layer. Used to ensure (probable) integrity of the data from corruption.
+    \item \textbf{Urgent Pointer} \textit{2 bytes} Indicates the offset from the \textit{Sequence number} of the last urgent byte when the \texttt{URG} flag is set.
+    \item \textbf{Options} \textit{0-40 bytes} Optionally, a series of TCP extension options followed by padding to the nearest 4th byte.% chktex 8
+\end{itemize}
+
+%   0                   1                   2                   3
+%  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |          Source Port          |       Destination Port        |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |                        Sequence Number                        |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |                    Acknowledgement Number                     |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |  Data |           |U|A|P|R|S|F|                               |
+% | Offset| Reserved  |R|C|S|S|Y|I|            Window             |
+% |       |           |G|K|H|T|N|N|                               |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |           Checksum            |         Urgent Pointer        |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |                    Options                    |    Padding    |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |                             data                              |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+\subsection{Connection oriented}
+One of the defining features of TCP is the famous \textit{three-way handshake}~(Figure~\ref{fig:threeway}) that every connection begins and ends with.
+
+\begin{figure}[H]
+    \begin{tikzpicture}[>=latex]
+        \footnotesize
+        \coordinate (TL) at (1.2,3);
+        \coordinate (BL) at (1.2,0);
+        \coordinate (TR) at (3.4,3);
+        \coordinate (BR) at (3.4,0);
+        \coordinate (LA) at ($(TL)!.25!(BL)$);
+        \coordinate (LB) at ($(TL)!.65!(BL)$);
+        \coordinate (LC) at ($(TL)!.70!(BL)$);
+        \coordinate (LD) at ($(TL)!.75!(BL)$);
+        \coordinate (RA) at ($(TR)!.14!(BR)$);
+        \coordinate (RB) at ($(TR)!.40!(BR)$);
+        \coordinate (RC) at ($(TR)!.45!(BR)$);
+        \coordinate (RD) at ($(TR)!.50!(BR)$);
+        \coordinate (RE) at ($(TR)!.90!(BR)$);
+        % Lines & labels
+        \draw (TL) node[above]{\large Client};
+        \draw (TR) node[above]{\large Server};
+        \draw[thick] (TL)--(BL) (TR)--(BR);
+        % LISTEN
+        \draw (RA) node[right]{%
+            \begin{tabular}{l}
+                \verb$LISTEN$\\
+                \textit{passive open}
+            \end{tabular}
+        };
+        % \texttt{SYN}
+        \draw (LA) node[left]{%
+            \begin{tabular}{r}
+                \textit{active open}\\
+                \verb$SYN_SENT$
+            \end{tabular}
+        };
+        \draw[->] (LA) -- (RB) node[midway,sloped,above]{\verb$SYN$};
+        \draw (RC) node[right]{%
+            \begin{tabular}{l}
+                \verb$SYN_RCVD$\
+            \end{tabular}
+        };
+        % \texttt{SYN}/\texttt{ACK}
+        \draw[->] (RD) -- (LB) node[midway,sloped,above]{\verb$SYN, ACK$};
+        \draw (LC) node[left]{%
+            \begin{tabular}{r}
+                \verb$ESTABLISHED$\
+            \end{tabular}
+        };
+        % \texttt{ACK}
+        \draw[->] (LD) -- (RE) node[midway,sloped,above]{\verb$ACK$};
+        \draw (RE) node[right]{%
+            \begin{tabular}{l}
+                \verb$ESTABLISHED$\
+            \end{tabular}
+        };
+    \end{tikzpicture}
+    \caption{Three-way handshake}\label{fig:threeway}
+\end{figure}
+
+A client requests a new connection by sending an initial packet with the \texttt{SYN} bit set as well as an initial random \textit{Sequence number}. When a packet marked with \texttt{SYN} is received at the server, a new connection is being established and the server replies with a \texttt{SYN}/\texttt{ACK} packet. This reply does one of two things:
+\begin{enumerate}
+    \item The mutual \texttt{SYN} flag indicates the connection is being accepted along with a separate random sequence number.
+    \item The \texttt{ACK} flag being set along with the \textit{Acknowledgement number} indicates it understood the initial \textit{Sequence number}.
+\end{enumerate}
+The sequence number from the initial flag is reused, incremented by one and sent back as the acknowledgement number in the \texttt{SYN}/\texttt{ACK} packet.
+
+Finally, the client replies with the sequence number sent by the server, incremented by one, which completes the three-way handshake. At this point the connection is set up and ready to be used to transmit data.
+
+When the connection is finished with, both endpoints need to mutually close the connection, in a very similar fashion to the \texttt{SYN}, \texttt{SYN}/\texttt{ACK}, \texttt{ACK} pattern.
+Either side of the connection can initiate a \texttt{FIN} at any point, indicating there is no more data to send to which the peer must respond with an \texttt{ACK} of the final sequence number incremented by one to confirm the \texttt{FIN} packet was received.
+
+Finish packets can behave slightly differently to \texttt{SYN} packets as there is no requirement to send a \texttt{FIN} packet immediately after receiving one. In fact, a connection can remain \textit{half closed} for quite a while whilst one side finishes transmitting data. This is a common pattern for some software applications as only simplex communication is required. It is also acceptable to close a connection quickly with \texttt{FIN}, \texttt{FIN}/\texttt{ACK}, \texttt{ACK}.
+
+If at any point a \texttt{SYN}, \texttt{FIN} or other packet has not been acknowledged by the peer within a certain time frame, the packet will be resent under the assumption it never arrived; this is part of the reliability of TCP (See Section~\ref{sec:reliable}).
+
+Following this pattern ensures both peers are in agreement of the state of the connection at all times. If at any point an invalid connection request is sent, to a closed port, for example, a \texttt{RST} packet is immediately in reply indicating the client should immediately discard of the connection as it is invalid.
+\subsection{Ordered}
+\textit{Sequence numbers} are used to track each individual byte sent over the connection. For each byte successfully received by the peer the acknowledgement number is incremented to that value. Each packet contains a sequence number for the first byte of the payload in that segment indicating the position of the data in the continuous stream. If a packet arrives out of order, it can be kept aside until it is required or dropped and it will be retransmitted. Data that has been sent but not acknowledged is assumed to be lost so after a timeout it is retransmitted.
+
+Quite often, especially with small local networks or across short distances, for the most part packets will arrive in order and complete so little retransmission is required, just some reordering and payload reassembly.
+
+There are various methods of tracking missing packets, storing and reordering packets, indicating that packets are lost to reduce retransmission latency and so on that are used in TCP implementations which can improve performance and throughput in many cases however they are not required for basic TCP functionality.
+
+\subsection{Reliable}\label{sec:reliable}
+Acknowledging data is the first method used by TCP to ensure all data arrives intact. The sender keeps track of the sequence number of the lack acknowledgment it received and also keeps buffered the transmitted but unacknowledged data in the case where it has to be retransmitted. As data is received at the client, acknowledgements are sent in reply confirming the data was received.
+
+Complementing that, a primitive checksum known as the \textit{Internet checksum} is used to verify integrity of the data. By modern standards it is a very poor checksum implementation however it is very fast to compute and is still sufficient to ensure no serious corruption has occurred. In most cases, even if the checksum is still valid, corruption caused to the header will be picked up and the packet will be discarded anyway likely due to out-of-band sequence numbers or similar. The \textit{Internet checksum} is defined as `the 16 bit one's complement of the one's complement sum of all 16 bit words in the header and text'~\cite[3.1]{rfc793}.
+
+\subsection{Extensible}
+TCP has a vast array of extensions, specified in the `Option' field in the packet header, that are used to fix many issues, improve performance and add extra functionality. This section will cover the commonly used options of note but there are many more that are widely used and some still in development.
+
+\subsubsection{Window Scaling}
+At the advent of TCP, networks were comparatively slow of only a few Megabits per second however technology has advanced and now links are available in excess of 100 Gigabits per second. The default \textit{Window size} defined in TCP is only 64KiB which at 100Gbps can be filled in just 5 microseconds which can slow down transmission dramatically as the buffer has to be cleared before it can be filled again. To leverage these blistering transfer speeds, Window Scaling~\cite[2]{rfc1323} was introduced to increase the size of the default receive window. 
+
+Window scaling must be negotiated during the initial handshake of the connection; a client requests wscale in the first \texttt{SYN} packet to which the peer replies with a wscale option in the returning \texttt{SYN}/\texttt{ACK} segment, confirming the choice to use scaling for the remainder of the connection. Should no reply to the wscale option be sent, it is assumed the peer does not support window scaling and therefore the connection must operate without scaling.
+
+The option specifies a scale value between 0 and 14 which should be applied as a \textit{bitwise left shift} to the window size allowing a maximum receive window size of 1GiB ($65536 << 14$). It is completely valid to negotiate a `zero' shift in one direction to disable scaling for one client.
+
+\subsubsection{Selective \texttt{ACK}}\label{sec:sack}
+Acknowledgements are part of the reason TCP is so useful, but in particularly poor network conditions, the performance of TCP can suffer from excessive retransmissions, driving latency up and throughput down. Often in lossy transfers only a small amount of packets will be lost but TCP defines that data should be acknowledged until that point and all data afterwards will be retransmitted. It is often that most or all data after a missing packet will have arrived successfully but would be unnecessarily retransmitted.
+
+Selective \texttt{ACK} aims to reduce and abolish retransmissions for data that has already arrived by indicating to the sender which blocks have and have not arrived. It is an option appended specifically to \texttt{ACK} packets to give more detail about which byte ranges should be retransmitted. The option has a variable payload length to allow inclusion of the left and right boundaries of each block that is being acknowledged.
+
+\subsubsection{Nagle's Algorithm}
+\citeauthor{rfc896} proposed in \citeyear{rfc896} the concept of reducing the amount of small packets being transmitted by buffering outgoing data for a small period of time before sending it. This is today known as \textit{Nagle's Algorithm} which is defined to address the `small packet problem' by not transmitting new data whilst there is still unacknowledged data in transmission. Sent data is queued indefinitely in the transmit buffer until an acknowledgment is received or until the buffer contains enough data to fill at least one segment.
+
+The segment size in this case is the \textit{Maximum Segment Size} calculated by the lowest MTU in the route between the two communicating nodes, minus the header sizes. MSS tends to be 1460, or less, assuming the standard Ethernet (IEEE 802.3) MTU of 1500 is used.
+
+\subsubsubsection{TCP Corking}
+Linux implements a feature typically referred to as \texttt{TCP\_CORK} which is similar in nature to the operation of Nagle's Algorithm. The ultimate goal of corking is the same as Nagle, but is achieved in a different way. Corking will always buffer data, even after the reception of an acknowledgment, until there is enough to fill a segment or until the timeout has passed.  Linux uses a default corking timeout of 200ms.
+
+\subsection{Connection states}
 
 % TODO: Fix tenses (to past, mostly)
 \section{Literature Review}
-\subsection{A brief look at related works}
+\subsection{\mbox{A brief look at related works}}
 % RFC675 overview
-When TCP was originally proposed in December 1974, by \citeauthor{rfc675} in RFC 675~\cite{rfc675}, flow diagrams and implementation suggestions were defined but specific pseudo-code routines, that could be implemented directly, were not provided. At that time TCP was young and naive due to having little exposure to real-world use cases. Furthermore, the limitations of the technology of the era were apparent in the original design given the scope and proposed use of the protocol, compared to the significantly higher speed demands in 2017.
+When TCP was originally proposed in December 1974, by \citeauthor{rfc675} in RFC 675~\cite{rfc675}, flow diagrams and implementation suggestions were defined but lacked specific pseudo-code routines that could be implemented directly, were not provided. At that time TCP was young and naive due to having little exposure to real-world use cases. Furthermore, the limitations of the technology of the era were apparent in the original design given the scope and proposed use of the protocol, compared to the significantly higher speed demands in 2017.
 
 % RFC793 overview & level-ip implementation to the spec
 RFC 793 followed some years later and provided a more specific breakdown, that can be directly translated and implemented in code, of each event within the protocol and an appropriate procedure to handle it~\cite[Page~54-77]{rfc793}. \citeauthor{rfc793} who published the specification, now recognised as an official internet standard, defined TCP as `a connection-oriented, end-to-end reliable protocol' as it is now widely known. The document provides a well-defined list of requirements for the protocol to run, as well as a multitude of provisions for successful operation within the promises.
-Many implementations of the TCP/IP stack including, but not limited to, `Level-IP' by \citeauthor{levelip-spec} follow this specification~\cite[\texttt{src/tcp\_input.c} line~262]{levelip-spec} very closely which, in theory, produces a TCP that should interwork correctly, as per the specification, with any other correctly implemented TCP. % chktex 13
+Many implementations of the TCP/IP stack including, but not limited to, `Level-IP' by \citeauthor{levelip-spec} follows this specification~\cite[\texttt{src/tcp\_input.c} line~262]{levelip-spec} very closely which, in theory, produces a TCP that should interwork seamlessly, as per the specification, with any other correctly implemented TCP. % chktex 13
 
 % lwIP goals
 Not all TCP/IP stacks are created equal; there are numerous incentives for developing alternate implementations, for example `lwIP' from \citeauthor{lwip}~(\citeyear{lwip}) was built `to reduce memory usage and code size, making lwIP suitable for use in small clients with very limited resources such as embedded systems'. There are many inefficiencies in `standard' networking stacks like those included in popular operating systems such as Linux, BSD, macOS and Windows, to name a few, especially regarding memory usage. These protocols make the assumption that the physical system has considerable amounts of memory available for receiving, processing and duplicating network data both in the kernel and in user applications. \citeauthor{lwip} makes the opposite assumption and as a result produced a system where minimal replication of data and little wasted memory allocation occurs. Using dynamically sized packet buffers \texttt{pbufs}, \citeauthor{lwip} made efficient use of RAM, ROM and pooled memory to address network data without requiring it to be copied to a local storage space before being actioned. Through many small optimisations like these, lwIP was, and still is, a very effective network stack, usable on even the most restricted hardware which in the growing interconnected embedded device market is invaluable.
@@ -79,7 +270,7 @@ Not all TCP/IP stacks are created equal; there are numerous incentives for devel
 % mTCP goals
 Conversely, some alternate implementations exist for quite the opposite reasons such as `mTCP' \citeauthor{jeong2014mtcp}, which was constructed as `a highly scalable user-level TCP stack for multicore systems'. The intention was for mTCP to outperform competing solutions in packet throughput and data volume. According to their claims, mTCP can surpass Linux by a factor of 25 in `small message transactions' while also boosting regular performance of popular applications between 33\% and 320\%. Such performance numbers are impressive, especially considering the widespread use of Linux for commercial applications and hosting, which begs the question: ``Why is it significantly faster than the default Linux implementation and why hasn't Linux caught up yet?''~\cite[2.2, 3]{jeong2014mtcp}
 
-Many of the improvements suggested by \citeauthor{jeong2014mtcp} in~\cite{jeong2014mtcp} are very intelligent applications of high speed network adapters and multicore processor systems, such as servers. Any TCP network stack that is to be run in these kinds of scenarios should consider these optimisations for improved performance. It is likely that many of the proposed enhancements would also benefit low-power single CPU systems too, with the most probable outcome being reduced latency and memory usage.
+Many of the improvements suggested by \citeauthor{jeong2014mtcp}~\cite{jeong2014mtcp} are very intelligent applications of high speed network adapters and multicore processor systems, such as servers. Any TCP network stack that is to be run in these kinds of scenarios should consider these optimisations for improved performance. It is likely that many of the proposed enhancements would also benefit low-power single CPU systems too, with the most probable outcome being reduced latency and memory usage.
 
 \subsection{Demultiplexing TCP}
 \citeauthor{braun:inria-00074040} designed a modified BSD TCP/IP stack where the IP layer resides in the kernel and TCP is split in two between kernel and userspace into TCPU and TCPK respectively. TCP processing is moved mostly into the user region, residing as local code in the calling process. The only exception to this is the `demultiplexing' step, TCPK, where TCP frames are routed to the correct user program based on the ports and addresses from the IP layer packet, providing security for the receiving process.
@@ -180,4 +371,5 @@ By moving processing from kernel to userspace, protections such as obscurity fro
 % Signal handling, such as SIGSTP breaking timing
 
 \printbibliography % chktex 1
+\end{multicols}
 \end{document}
