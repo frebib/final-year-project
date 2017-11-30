@@ -104,19 +104,9 @@ Modern TCP is a very complex protocol with many extensions and experimental vari
 % +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 \subsection{Connection oriented}
-One of the defining features of TCP is the famous \textit{three-way handshake} that every connection begins and ends with.
-
-A client requests a new connection by sending an initial packet with the \texttt{SYN} bit set as well as an initial random \textit{Sequence number}. When a packet marked with \texttt{SYN} is received at the server, a new connection is being established and the server replies with a \texttt{SYN}/\texttt{ACK} packet. This reply does one of two things:
-\begin{enumerate}
-    \item The mutual \texttt{SYN} flag indicates the connection is being accepted along with a separate random sequence number.
-    \item The \texttt{ACK} flag being set along with the \textit{Acknowledgement number} indicates it understood the initial \textit{Sequence number}.
-\end{enumerate}
-The sequence number from the initial flag is reused, incremented by one and sent back as the acknowledgement number in the \texttt{SYN}/\texttt{ACK} packet.
-
-Finally, the client replies with the sequence number sent by the server, incremented by one, which completes the three-way handshake. At this point the connection is set up and ready to be used to transmit data.
+One of the defining features of TCP is the famous \textit{three-way handshake}~(Figure \ref{fig:threeway}) that every connection begins and ends with.
 
 \begin{figure}[H]
-    %\centering
     \begin{tikzpicture}[>=latex]
         \footnotesize
         \coordinate (TL) at (1.2,3);
@@ -171,9 +161,18 @@ Finally, the client replies with the sequence number sent by the server, increme
             \end{tabular}
         };
     \end{tikzpicture}
-    \label{fig:threeway}
     \caption{Three-way handshake}
+    \label{fig:threeway}
 \end{figure}
+
+A client requests a new connection by sending an initial packet with the \texttt{SYN} bit set as well as an initial random \textit{Sequence number}. When a packet marked with \texttt{SYN} is received at the server, a new connection is being established and the server replies with a \texttt{SYN}/\texttt{ACK} packet. This reply does one of two things:
+\begin{enumerate}
+    \item The mutual \texttt{SYN} flag indicates the connection is being accepted along with a separate random sequence number.
+    \item The \texttt{ACK} flag being set along with the \textit{Acknowledgement number} indicates it understood the initial \textit{Sequence number}.
+\end{enumerate}
+The sequence number from the initial flag is reused, incremented by one and sent back as the acknowledgement number in the \texttt{SYN}/\texttt{ACK} packet.
+
+Finally, the client replies with the sequence number sent by the server, incremented by one, which completes the three-way handshake. At this point the connection is set up and ready to be used to transmit data.
 
 When the connection is finished with, both endpoints need to mutually close the connection, in a very similar fashion to the \texttt{SYN}, \texttt{SYN}/\texttt{ACK}, \texttt{ACK} pattern.
 Either side of the connection can initiate a \texttt{FIN} at any point, indicating there is no more data to send to which the peer must respond with an \texttt{ACK} of the final sequence number incremented by one to confirm the \texttt{FIN} packet was received.
