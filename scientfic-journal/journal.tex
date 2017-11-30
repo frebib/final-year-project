@@ -66,7 +66,9 @@ The primary aim of this project is to provide, as a software library, a callable
 
 Multiple similar programs exist that provide many of the same features, but none that are drop-in replacements for the inbuilt kernel stack that can be run without configuration as a userland application without the need for recompilation of the calling process. This project's aim is to provide a very simple user experience, where the network stack can be invoked at runtime to replace the traditional system calls:
 
-\texttt{\$ netstack curl -vv \url{github.com}}
+\begin{center}
+    \texttt{\$ netstack curl -vv \url{github.com}}
+\end{center}
 
 \section{TCP Overview}
 Modern TCP is a very complex protocol with many extensions and experimental variations. This overview mostly covers the essentials as defined by the original specification, RFC~793~\cite{rfc793}. Extensions or variations are very useful for improving performance and reliability but absolutely not required for a functioning TCP. % chktex 13
