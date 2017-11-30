@@ -182,6 +182,12 @@ If at any point a \texttt{SYN}, \texttt{FIN} or other packet has not been acknow
 
 Following this pattern ensures both peers are in agreement of the state of the connection at all times. If at any point an invalid connection request is sent, to a closed port, for example, a \texttt{RST} packet is immediately in reply indicating the client should immediately discard of the connection as it is invalid.
 \subsection{Ordered}
+\textit{Sequence numbers} are used to track each individual byte sent over the connection. For each byte successfully received by the peer the acknowledgement number is incremented to that value. Each packet contains a sequence number for the first byte of the payload in that segment indicating the position of the data in the continuous stream. If a packet arrives out of order, it can be kept aside until it is required or dropped and it will be retransmitted. Data that has been sent but not acknowledged is assumed to be lost so after a timeout it is retransmitted.
+
+Quite often, especially with small local networks or across short distances, for the most part packets will arrive in order and complete so little retransmission is required, just some reordering and payload reassembly.
+
+There are various methods of tracking missing packets, storing and reordering packets, indicating that packets are lost to reduce retransmission latency and so on that are used in TCP implementations which can improve performance and throughput in many cases however they are not required for basic TCP functionality.
+
 \subsection{Reliable}\label{sec:reliable}
 \subsection{Extensible}
 \subsection{Connection states}
