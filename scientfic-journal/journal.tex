@@ -2,9 +2,13 @@
 \usepackage[margin=7em]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{multicol}
+\usepackage{float}
 \usepackage{babel}
 \usepackage{csquotes}
 \usepackage{isodate}
+
+\usepackage{tikz}
+\usetikzlibrary{calc,arrows}
 
 \usepackage[
     backend=biber,
@@ -64,6 +68,123 @@ Multiple similar programs exist that provide many of the same features, but none
 \end{center}
 
 \section{TCP Overview}
+\subsection{Terminology}
+\begin{itemize}
+    \item \texttt{SYN}: Synchronise\\
+        \textit{Set to establish a new connection}
+    \item \texttt{FIN}: Finish\\
+        \textit{Indicate closure of existing connection}
+    \item \texttt{ACK}: Acknowledgement\\
+        \textit{Confirming that data arrived successfully or a acknowledging a command}
+    \item \texttt{RST}: Reset\\
+        \textit{Sent in reply to an invalid connection}
+\end{itemize}
+
+\subsection{TCP packet header}
+%   0                   1                   2                   3
+%  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |          Source Port          |       Destination Port        |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |                        Sequence Number                        |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |                    Acknowledgement Number                     |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |  Data |           |U|A|P|R|S|F|                               |
+% | Offset| Reserved  |R|C|S|S|Y|I|            Window             |
+% |       |           |G|K|H|T|N|N|                               |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |           Checksum            |         Urgent Pointer        |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |                    Options                    |    Padding    |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+% |                             data                              |
+% +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+\subsection{Connection oriented}
+One of the defining features of TCP is the famous \textit{three-way handshake} that every connection begins and ends with.
+
+A client requests a new connection by sending an initial packet with the \texttt{SYN} bit set as well as an initial random \textit{Sequence number}. When a packet marked with \texttt{SYN} is received at the server, a new connection is being established and the server replies with a \texttt{SYN}/\texttt{ACK} packet. This reply does one of two things:
+\begin{enumerate}
+    \item The mutual \texttt{SYN} flag indicates the connection is being accepted along with a separate random sequence number.
+    \item The \texttt{ACK} flag being set along with the \textit{Acknowledgement number} indicates it understood the initial \textit{Sequence number}.
+\end{enumerate}
+The sequence number from the initial flag is reused, incremented by one and sent back as the acknowledgement number in the \texttt{SYN}/\texttt{ACK} packet.
+
+Finally, the client replies with the sequence number sent by the server, incremented by one, which completes the three-way handshake. At this point the connection is set up and ready to be used to transmit data.
+
+\begin{figure}[H]
+    %\centering
+    \begin{tikzpicture}[>=latex]
+        \footnotesize
+        \coordinate (TL) at (1.2,3);
+        \coordinate (BL) at (1.2,0);
+        \coordinate (TR) at (3.4,3);
+        \coordinate (BR) at (3.4,0);
+        \coordinate (LA) at ($(TL)!.25!(BL)$);
+        \coordinate (LB) at ($(TL)!.65!(BL)$);
+        \coordinate (LC) at ($(TL)!.70!(BL)$);
+        \coordinate (LD) at ($(TL)!.75!(BL)$);
+        \coordinate (RA) at ($(TR)!.14!(BR)$);
+        \coordinate (RB) at ($(TR)!.40!(BR)$);
+        \coordinate (RC) at ($(TR)!.45!(BR)$);
+        \coordinate (RD) at ($(TR)!.50!(BR)$);
+        \coordinate (RE) at ($(TR)!.90!(BR)$);
+        % Lines & labels
+        \draw (TL) node[above]{\large Client};
+        \draw (TR) node[above]{\large Server};
+        \draw[thick] (TL)--(BL) (TR)--(BR);
+        % LISTEN
+        \draw (RA) node[right]{%
+            \begin{tabular}{l}
+                \verb$LISTEN$\\
+                \textit{passive open}
+            \end{tabular}
+        };
+        % \texttt{SYN}
+        \draw (LA) node[left]{%
+            \begin{tabular}{r}
+                \textit{active open}\\
+                \verb$SYN_SENT$
+            \end{tabular}
+        };
+        \draw[->] (LA) -- (RB) node[midway,sloped,above]{\verb$SYN$};
+        \draw (RC) node[right]{%
+            \begin{tabular}{l}
+                \verb$SYN_RCVD$\
+            \end{tabular}
+        };
+        % \texttt{SYN}/\texttt{ACK}
+        \draw[->] (RD) -- (LB) node[midway,sloped,above]{\verb$SYN, ACK$};
+        \draw (LC) node[left]{%
+            \begin{tabular}{r}
+                \verb$ESTABLISHED$\
+            \end{tabular}
+        };
+        % \texttt{ACK}
+        \draw[->] (LD) -- (RE) node[midway,sloped,above]{\verb$SACK$};
+        \draw (RE) node[right]{%
+            \begin{tabular}{l}
+                \verb$ESTABLISHED$\
+            \end{tabular}
+        };
+    \end{tikzpicture}
+    \label{fig:threeway}
+    \caption{Three-way handshake}
+\end{figure}
+
+When the connection is finished with, both endpoints need to mutually close the connection, in a very similar fashion to the \texttt{SYN}, \texttt{SYN}/\texttt{ACK}, \texttt{ACK} pattern.
+Either side of the connection can initiate a \texttt{FIN} at any point, indicating there is no more data to send to which the peer must respond with an \texttt{ACK} of the final sequence number incremented by one to confirm the \texttt{FIN} packet was received.
+
+Finish packets can behave slightly differently to \texttt{SYN} packets as there is no requirement to send a \texttt{FIN} packet immediately after receiving one. In fact, a connection can remain \textit{half closed} for quite a while whilst one side finishes transmitting data. This is a common pattern for some software applications as only simplex communication is required. It is also acceptable to close a connection quickly with \texttt{FIN}, \texttt{FIN}/\texttt{ACK}, \texttt{ACK}.
+
+If at any point a \texttt{SYN}, \texttt{FIN} or other packet has not been acknowledged by the peer within a certain time frame, the packet will be resent under the assumption it never arrived; this is part of the reliability of TCP (See Section~\ref{sec:reliable}).
+
+Following this pattern ensures both peers are in agreement of the state of the connection at all times. If at any point an invalid connection request is sent, to a closed port, for example, a \texttt{RST} packet is immediately in reply indicating the client should immediately discard of the connection as it is invalid.
+\subsection{Ordered}
+\subsection{Reliable}\label{sec:reliable}
+\subsection{Extensible}
+\subsection{Connection states}
 
 % TODO: Fix tenses (to past, mostly)
 \section{Literature Review}
