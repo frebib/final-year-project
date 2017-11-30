@@ -10,6 +10,9 @@
 \usepackage{tikz}
 \usetikzlibrary{calc,arrows}
 
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=*}
+
 \usepackage[
     backend=biber,
     sorting=none,
@@ -78,9 +81,27 @@ Modern TCP is a very complex protocol with many extensions and experimental vari
         \textit{Confirming that data arrived successfully or a acknowledging a command}
     \item \texttt{RST}: Reset\\
         \textit{Sent in reply to an invalid connection}
+    \item Bit field: \textit{Data where each individual bit represents a boolean value e.g. 0 or 1}
 \end{itemize}
 
 \subsection{TCP packet header}
+A TCP packet, or segment, contains an initial header followed by the packet payload. The header can be a variable length but is always at least 20 bytes and at most 60 bytes so small payloads are an inefficient use of a segment as there is always a 20+ byte overhead, per packet.
+
+Most of the information carried in the header is metadata for identifying the connection and the data within the packet. Many of the values such as Sequence Number, Window size etc correspond to the sender; each peer will have their own individual values. In order of appearance, the fields in the header are as follows:
+
+\begin{itemize}
+    \item \textbf{Source Port} \textit{2 bytes} Port from which this packets was dispatched.
+    \item \textbf{Destination Port} \textit{2 bytes} Port number open to receive on the recipient device.
+    \item \textbf{Sequence Number} \textit{4 bytes} Sequential count of the first byte in the payload, identifying the sequence position of the segment.
+    \item \textbf{Acknowledgement number} \textit{4 bytes} Sequential count of successfully received bytes.
+    \item \textbf{Data offset} \textit{4 bits} Size of the TCP header in 32-bit words, as the header is padded to multiples of 4 bytes. This indicates the start of the payload and the end of the header within the packet.
+    \item \textbf{Flags} \textit{12 bits} A \textit{bit field} containing the following control flags: \texttt{FIN}, \texttt{SYN}, \texttt{RST}, \texttt{PSH}, \texttt{ACK} and \texttt{URG}.
+    \item \textbf{Window} \textit{2 bytes} Size, in bytes, of the receive window available to fill.
+    \item \textbf{Checksum} \textit{2 bytes} The \textit{internet checksum}~\cite{internetchecksum} of the entire TCP segment and the upper \textit{Internet Protocol} layer. Used to ensure (probable) integrity of the data from corruption.
+    \item \textbf{Urgent Pointer} \textit{2 bytes} Indicates the offset from the \textit{Sequence number} of the last urgent byte when the \texttt{URG} flag is set.
+    \item \textbf{Options} \textit{0-40 bytes} Optionally, a series of TCP extension options followed by padding to the nearest 4th byte.
+\end{itemize}
+
 %   0                   1                   2                   3
 %  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 % +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -188,6 +209,10 @@ Quite often, especially with small local networks or across short distances, for
 There are various methods of tracking missing packets, storing and reordering packets, indicating that packets are lost to reduce retransmission latency and so on that are used in TCP implementations which can improve performance and throughput in many cases however they are not required for basic TCP functionality.
 
 \subsection{Reliable}\label{sec:reliable}
+Acknowledging data is the first method used by TCP to ensure all data arrives intact. The sender keeps track of the sequence number of the lack acknowledgment it received and also keeps buffered the transmitted but unacknowledged data in the case where it has to be retransmitted. As data is received at the client, acknowledgements are sent in reply confirming the data was received.
+
+Complementing that, a primitive checksum known as the \textit{Internet checksum} is used to verify integrity of the data. By modern standards it is a very poor checksum implementation however it is very fast to compute and is still sufficient to ensure no serious corruption has occurred. In most cases, even if the checksum is still valid, corruption caused to the header will be picked up and the packet will be discarded anyway likely due to out-of-band sequence numbers or similar. The \textit{Internet checksum} is defined as `the 16 bit one's complement of the one's complement sum of all 16 bit words in the header and text'~\cite[3.1]{rfc793}.
+
 \subsection{Extensible}
 \subsection{Connection states}
 
