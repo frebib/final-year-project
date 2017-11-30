@@ -102,7 +102,7 @@ Modern TCP is a very complex protocol with many extensions and experimental vari
 % +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 \subsection{Connection oriented}
-One of the defining features of TCP is the famous \textit{three-way handshake}~(Figure \ref{fig:threeway}) that every connection begins and ends with.
+One of the defining features of TCP is the famous \textit{three-way handshake}~(Figure~\ref{fig:threeway}) that every connection begins and ends with.
 
 \begin{figure}[H]
     \begin{tikzpicture}[>=latex]
@@ -152,7 +152,7 @@ One of the defining features of TCP is the famous \textit{three-way handshake}~(
             \end{tabular}
         };
         % \texttt{ACK}
-        \draw[->] (LD) -- (RE) node[midway,sloped,above]{\verb$SACK$};
+        \draw[->] (LD) -- (RE) node[midway,sloped,above]{\verb$ACK$};
         \draw (RE) node[right]{%
             \begin{tabular}{l}
                 \verb$ESTABLISHED$\
