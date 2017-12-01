@@ -234,7 +234,7 @@ Complementing that, a primitive checksum known as the \textit{Internet Checksum}
 \subsection{Extensible}
 TCP has a vast array of extensions, specified in the `Option' section at the end of the packet header, that are used to fix many issues, improve performance and add extra functionality. This section will cover the commonly used options of note, but there are many more that are widely used and some still in development.
 
-\subsubsection{Window Scaling}
+\subsubsection{Window Scaling}\label{sec:wscale}
 At the advent of TCP, networks were comparatively slow of only a few Megabits per second, however, technology has advanced and now links are available in excess of 100 Gigabits per second. The default \textit{Window size} defined in TCP is only 64KiB which at 100Gbps can be filled in just 5 microseconds which can slow down transmission dramatically as the buffer has to be cleared before it can be filled again. To leverage these blistering transfer speeds, Window Scaling~\cite[2]{rfc1323} was introduced to increase the size of the default receive window. 
 
 Window scaling must be negotiated during the initial handshake of the connection; a client requests wscale in the first \texttt{SYN} packet to which the peer replies with a wscale option in the returning \texttt{SYN}/\texttt{ACK} segment, confirming the choice to use scaling for the remainder of the connection. Should no reply to the wscale option be sent, it is assumed the peer does not support window scaling and therefore the connection must operate without scaling.
@@ -423,30 +423,15 @@ Many of the execution routines for initialising the slave processes are similar 
     \item{TCP connections are handled by the individual destination processes} \textit{The daemon process is only responsible for exchange of network packets from the interface and demultiplexing packets before they are handed over to the client applications for TCP processing.}
 \end{enumerate}
 
+\subsection{TCP Implementation}
+Implementation of the internal TCP stack is actually one of the simplest tasks in the project as a whole. Provided the specification from RFC 793~\cite{rfc793} is followed closely, an interworking TCP stack should be produced. The algorithms defined in the specification document on packet, event and timer handling are straightforward and should pose few significant issues.
+
+Much of the complexity around TCP is in the wide range of optional extensions that are so widely used along with it. Many of the popular, well developed TCP stacks provide implementation for most of the well known extensions and options and many are still in general use by default. It is infeasible for this project to implement so many optional extras so just some of the important, frequently used options will be considered such as: `Selective \texttt{ACK}'~\ref{sec:sack}, `Window Scaling'~\ref{sec:wscale}, `TCP Timestamps' and some congestion control algorithms (including, but not limited to: slow start, fast retransmit, fast recovery and congestion avoidance).
+
 % Why do we use the Linux kernel's TCP stack?
 % https://jvns.ca/blog/2016/06/30/why-do-we-use-the-linux-kernels-tcp-stack/
 % https://github.com/lkl/linux
 % https://news.ycombinator.com/item?id=12021195
-
-% Features I would like:
-%   - Multiple interfaces: tpacket, rawsock, rawinet, tun, tap
-%     - Defaults to tpacket, whichever version is supported as it
-%       is quickest, fallback to rawsock
-%   - Running as a system daemon or a standalone hook-in
-%     See also: https://github.com/lkl/linux/blob/master/tools/lkl/lib/hijack/hijack.c
-%     - Standalone will use libdl to override libc calls
-%       like socket(), recv() and listen() etc
-%       - Limitations on file descriptor and port number clashes
-%         - Use fds > FD_SETSIZE (1024)? Maybe ulimit will mess with us here
-%     - System daemon will connect to other programs either
-%       via compiled-in support through libnetstack or another
-%       binary that uses libdl and hooks syscalls, like standalone
-%   - Options:
-%     See also: https://tools.ietf.org/html/rfc7414
-%     - Window Scaling is a must. Performance relies on it
-%     - SACK
-%     - Timestamps?
-
 
 \section{Implementation Issues}
 \subsection{Hijacking the BSD \texttt{socket()} API calls} % chktex 36
