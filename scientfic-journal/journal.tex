@@ -60,7 +60,7 @@
 \maketitle
 
 \begin{abstract}
-    TCP/IP networking stacks included in most modern operating systems are opaque and mostly unconfigurable. This article aims to design and produce a coherent specification for an efficient, high performance TCP/IP network stack that can be used as a software library, standalone application or system-wide daemon to provide network access to many applications. It is provided as a learning and academic research tool that can be tweaked, extended and analysed completely to help gain a better understanding of TCP/IP networking as whole.
+    TCP/IP networking stacks included in most modern operating systems are opaque to the user and mostly unconfigurable. This article aims to design and produce a coherent specification for an efficient, high performance TCP/IP network stack that can be used as a software library, standalone application or system-wide daemon to provide network access to many applications. It is provided as a learning and academic research tool that can be tweaked, extended and analysed completely to help gain a better understanding of how operating systems handle networking and TCP/IP as whole.
 \end{abstract}
 
 
@@ -72,16 +72,16 @@ Transmission Control Protocol is an essential component of the modern internet u
 
 Over the years, TCP has been adapted and upgraded with extensions and variations to make it run more efficiently and intelligently, with improvements such as complex \textit{congestion control} algorithms to prevent systems and routers from getting overwhelmed, \textit{window scaling} to allow fast communicating clients to buffer more than the baseline 64 Kilobyte limit and \textit{Nagle's Algorithm}~\cite{rfc896} responsible for queuing small payloads of data together before sending to reduce multiple successive small packets being dispatched, amongst a long list of others extensions, some of which are defunct or have been replaced.
 
-Every connected operating system contains a TCP/IP implementation from it's vendor, however most are based on the original Berkely TCP implementation from BSD Unix~\cite{rfc793} and have been adapted to work more efficiently in modern workloads. TCP is a solid protocol that is backwards compatible by design so any devices, dating back to the early 1980s, should still be able to communicate with modern systems. TCP implementations in most devices are well-written and have the benefit of almost 40 years of experience and incremental improvements. For general-use computing such as web browsing and downloading files, these improvements are sufficient and have been optimised as such.
+Every connected operating system contains a TCP/IP implementation from its vendor, however, most are based on the original Berkely TCP implementation from BSD Unix~\cite{rfc793} and have been adapted to work more efficiently in modern workloads. TCP is a solid protocol that is backwards compatible by design so any devices, dating back to the early 1980s, should still be able to communicate with modern systems. TCP implementations in most devices are well-written and have the benefit of almost 40 years of experience and incremental improvements. For general-use computing such as web browsing and downloading files, these improvements are sufficient and have been optimised as such.
 
-Implementations in every major operating system allow for interaction with TCP via an \textit{Application Programming Interface} or API, to communicate with the enclosed network stack, however none of them allow access to view or modify the lower-level inner workings of the protocol. There are some use-cases where being able to interact, preview and utilise TCP can be useful, especially in software development and academic projects where low-level protocol access would be beneficial.
+Implementations in every major operating system allow for interaction with TCP via an \textit{Application Programming Interface} or API, to communicate with the enclosed network stack, however, none of them allow access to view or modify the lower-level inner workings of the protocol. There are some use-cases where being able to interact, preview and utilise TCP can be useful, especially in software development and academic projects where low-level protocol access would be beneficial.
 
 \subsection{Aim}\label{sec:aim}
 The primary aim of this project is to provide, as a \textit{user} software library, a callable, interactive TCP/IP stack that can be used standalone, as a system daemon, for use by multiple processes, or to be picked apart and analysed for educational purposes. The code will be provided in a modular way such that parts can be called as desired, or replaced with alternative implementations as to observe the difference between the two.
 
 It should also be globally compatible as only standard Linux features will be used ensuring maximum device compatibility.
 
-Multiple similar programs exist that provide many of the same features, but none that are drop-in replacements for the inbuilt kernel stack that can be run without configuration as a userland application without the need for recompilation of the calling process. This project's aim is to provide a very simple user experience, where the network stack can be invoked at runtime to replace the traditional system calls:
+Multiple similar programs exist that provide many of the same features, but none that are drop-in replacements for the inbuilt kernel stack that can be run without configuration as a userland application without the need for recompilation of the calling process.The aim of this project is to provide a very simple user experience, where the network stack can be invoked at runtime to replace the traditional system calls:
 
 \begin{center}
     \texttt{\$ netstack curl -vv \url{github.com}}
@@ -97,7 +97,7 @@ Modern TCP is a very complex protocol with many extensions and experimental vari
     \item \texttt{FIN}: Finish\\
         \textit{Indicate closure of existing connection}
     \item \texttt{ACK}: Acknowledgement\\
-        \textit{Confirming that data arrived successfully or a acknowledging a command}
+        \textit{Confirming that data arrived successfully or acknowledging a command}
     \item \texttt{RST}: Reset\\
         \textit{Sent in reply to an invalid connection}
     \item Bit field: \textit{Data where each individual bit represents a boolean value e.g. 0 or 1}
@@ -106,7 +106,7 @@ Modern TCP is a very complex protocol with many extensions and experimental vari
 \subsection{TCP packet header}
 A TCP packet, or segment, contains an initial header followed by the packet payload. The header can be a variable length but is always at least 20 bytes and at most 60 bytes so small payloads are an inefficient use of a segment as there is always a 20+ byte overhead, per packet.
 
-Most of the information carried in the header is metadata for identifying the connection and the data within the packet. Many of the values such as Sequence Number, Window size etc correspond to the sender; each peer will have their own individual values. In order of appearance, the fields in the header are as follows:
+Most of the information carried in the header is metadata for identifying the connection and the data within the packet. Many of the values such as Sequence Number and Window size correspond to the sender; each peer will have their own individual values. In order of appearance, the fields in the header are as follows:
 
 \begin{itemize}
     \item \textbf{Source Port} \textit{2 bytes} Port from which this packets was dispatched.
@@ -141,7 +141,7 @@ Most of the information carried in the header is metadata for identifying the co
 % |                             data                              |
 % +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-\subsection{Connection oriented}
+\subsection{Connection-oriented}
 One of the defining features of TCP is the famous \textit{three-way handshake}~(Figure~\ref{fig:threeway}) that every connection begins and ends with.
 
 \begin{figure}[H]
@@ -227,7 +227,7 @@ Quite often, especially with small local networks or across short distances, for
 There are various methods of tracking missing packets, storing and reordering packets, indicating that packets are lost to reduce retransmission latency and so on that are used in TCP implementations which can improve performance and throughput in many cases, however, they are not required for basic TCP functionality.
 
 \subsection{Reliable}\label{sec:reliable}
-Acknowledging data is the first method used by TCP to ensure all data arrives intact. The sender keeps track of the sequence number of the lack acknowledgment it received and also keeps buffered the transmitted but unacknowledged data in the case where it has to be retransmitted. As data is received at the client, acknowledgements are sent in reply confirming the data was received.
+Acknowledging data is the first method used by TCP to ensure that all data arrives intact. The sender keeps track of the sequence number of the last acknowledgement it received and also keeps buffered the transmitted but unacknowledged data in the case where it has to be retransmitted. As data is received at the client, acknowledgements are sent in reply confirming the data was received.
 
 Complementing that, a primitive checksum known as the \textit{Internet Checksum} is used to verify integrity of the data. By modern standards it is a very poor checksum implementation, however, it is very fast to compute and is still sufficient to ensure no serious corruption has occurred. In most cases, even if the checksum is still valid, corruption caused to the header could be detected and the packet will be discarded likely due to out-of-band sequence numbers or similar. The \textit{Internet Checksum} is defined as ``the 16 bit one's complement of the one's complement sum of all 16 bit words in the header and text''~\cite[3.1]{rfc793}.
 
@@ -247,12 +247,12 @@ Acknowledgements are part of the reason TCP is so useful, but in particularly po
 Selective \texttt{ACK} aims to reduce and abolish retransmissions for data that has already arrived by indicating to the sender which blocks have or have not arrived. It is an option appended specifically to \texttt{ACK} packets to give more detail about which byte ranges should be retransmitted. The option has a variable payload length to allow inclusion of the left and right boundaries of each block that is being acknowledged.
 
 \subsubsection{Nagle's Algorithm}
-\citeauthor{rfc896} proposed in \citeyear{rfc896} the concept of reducing the amount of small packets being transmitted by buffering outgoing data for a small period of time before sending it. This is today known as \textit{Nagle's Algorithm} which is defined to address the ``small packet problem'' by not transmitting new data whilst there is still unacknowledged data in transmission. Sent data is queued indefinitely in the transmit buffer until an acknowledgment is received or until the buffer contains enough data to fill at least one segment.
+\citeauthor{rfc896} proposed in \citeyear{rfc896} the concept of reducing the amount of small packets being transmitted by buffering outgoing data for a small period of time before sending it. This is today known as \textit{Nagle's Algorithm} which is defined to address the ``small packet problem'' by not transmitting new data whilst there is still unacknowledged data in transmission. Sent data is queued indefinitely in the transmit buffer until an acknowledgement is received or until the buffer contains enough data to fill at least one segment.
 
 The segment size in this case is the \textit{Maximum Segment Size} calculated by the lowest MTU in the route between the two communicating nodes, minus the header sizes. MSS tends to be 1460, or less, assuming the standard Ethernet (IEEE 802.3) MTU of 1500 is used.
 
 \subsubsubsection{TCP Corking}
-Linux implements a feature typically referred to as \texttt{TCP\_CORK} which is similar in nature to the operation of Nagle's Algorithm. The ultimate goal of corking is the same as Nagle, but is achieved in a different way. Corking will always buffer data, even after the reception of an acknowledgment, until there is enough to fill a segment or until the timeout has passed.  Linux uses a default corking timeout of 200ms.
+Linux implements a feature typically referred to as \texttt{TCP\_CORK} which is similar in nature to the operation of Nagle's Algorithm. The ultimate goal of corking is the same as Nagle, but is achieved in a different way. Corking will always buffer data, even after the reception of an acknowledgement, until there is enough to fill a segment or until the timeout has passed.  Linux uses a default corking timeout of 200ms.
 
 \subsubsection{Congestion Control}
 One of the final main features of TCP is the ability to survive and recover from network congestion with the use of complex control algorithms. Congestion control actually refers to a set of tools that a TCP should have, discussed in detail in the following sections:
@@ -260,13 +260,12 @@ One of the final main features of TCP is the ability to survive and recover from
 \subsubsubsection{Slow Start}
 A connection between two nodes is limited by the speed of the slowest intermediary node, such as a router, network interface or switch. To avoid overwhelming any of these devices resulting in packet loss, a TCP should assume the worst-case and start transmitting slowly. Congestion controlled TCP implementations maintain \textit{congestion window} which is the representation to the sender of the state of congestion in the network between the connected peers.
 
-Slow start initialises a small congestion window, usually a small multiple of the MSS\@. Each time data is transmitted, the sender only releases at most the amount specified by the congestion window. For each acknowledgment received for all transmitted data, the congestion window is increased, often by a factor of two. Each subsequent transmission will be larger than the previous as the congestion window increases. When a lost segment is detected, slow start will stop and the standard linear growth Congestion Avoidance algorithm will kick in.
+Slow start initialises a small congestion window, usually a small multiple of the MSS\@. Each time data is transmitted, the sender only releases at most the amount specified by the congestion window. For each acknowledgement received for all transmitted data, the congestion window is increased, often by a factor of two. Each subsequent transmission will be larger than the previous as the congestion window increases. When a lost segment is detected, slow start will stop and the standard linear growth Congestion Avoidance algorithm will kick in.
 
 \subsubsubsection{Congestion Avoidance}
 There have been many varying implementations of Congestion Avoidance algorithms with ranging feature sets for different scenarios. Some offer fast recovery, smaller loss or improved throughput. The aim of these algorithms is to continue a stable transmission between the two hosts whilst preventing subsequent packet loss by over-sending and overloading the network.
 
 Popular algorithms for this are: Vegas, BIC, CUBIC, Westwood, Reno, Tahoe and New Reno. Typically `New Reno' is used in Unix systems today as it provides the best performance and stability with minimal changes required to either sender or receiver.
-
 
 % TODO: Fix tenses (to past, mostly)
 \section{Literature Review}
@@ -287,7 +286,7 @@ Not all TCP/IP stacks are created equal; there are numerous incentives for devel
 % mTCP goals
 Conversely, some alternate implementations exist for quite the opposite reasons such as `mTCP' \citeauthor{jeong2014mtcp}, which was constructed as `a highly scalable user-level TCP stack for multicore systems'. The intention was for mTCP to outperform competing solutions in packet throughput and data volume. According to their claims, mTCP can surpass Linux by a factor of 25 in `small message transactions' while also boosting regular performance of popular applications between 33\% and 320\%. Such performance numbers are impressive, especially considering the widespread use of Linux for commercial applications and hosting, which begs the question: ``Why is it significantly faster than the default Linux implementation and why hasn't Linux caught up yet?''~\cite[2.2, 3]{jeong2014mtcp}
 
-Many of the improvements suggested by \citeauthor{jeong2014mtcp}~\cite{jeong2014mtcp} are very intelligent applications of high speed network adapters and multicore processor systems, such as servers. Any TCP network stack that is to be run in these kinds of scenarios should consider these optimisations for improved performance. It is likely that many of the proposed enhancements would also benefit low-power single CPU systems too, with the most probable outcome being reduced latency and memory usage.
+Many of the improvements suggested by \citeauthor{jeong2014mtcp}~\cite{jeong2014mtcp} are very intelligent applications of high-speed network adapters and multicore processor systems, such as servers. Any TCP network stack that is to be run in these kinds of scenarios should consider these optimisations for improved performance. It is likely that many of the proposed enhancements would also benefit low-power single CPU systems too, with the most probable outcome being reduced latency and memory usage.
 
 \subsection{Demultiplexing TCP}\label{sec:demultiplex}
 \citeauthor{braun:inria-00074040} designed a modified BSD TCP/IP stack where the IP layer resides in the kernel and TCP is split in two between kernel and userspace into TCPU and TCPK respectively. TCP processing is moved mostly into the user region, residing as local code in the calling process. The only exception to this is the `demultiplexing' step, TCPK, where TCP frames are routed to the correct user program based on the ports and addresses from the IP layer packet, providing security for the receiving process.
@@ -304,7 +303,7 @@ Much of the research surrounding TCP, particularly that providing userspace impl
 \citeauthor{jeong2014mtcp} shows that with the use of multiple receive queues spread across individual CPU cores and fewer locks along with improved buffer management and fewer context switches between kernel and user mode their implementation can yield a much improved throughput compared to Linux and other user-mode concepts. Much of the improved performance is thanks to the use of \textit{thread local storage} of socket buffers, TCP buffer pools and other data structures relating to individual threads that are not shared. Greatly reduced usage of locks across threads, reducing \textit{Lock contention}, helps to minimise idle time in both incoming and outgoing packet processing.
 
 \subsection{Reducing data copying overhead}\label{sec:reducecopy}
-A common theme across many protocol implementations is the focus on reducing overhead due to data copying. Any copied data is potential wasted time, especially if the same functionality could be programmed using a \textit{zero-copy} approach, where incoming packets are deposited directly from the network adapter into the user program without being duplicated one or more times. Many of the related works include some variation of a transmit/receive queue utilised by every layer from the NIC to the user program, minimal or zero data copying. \citeauthor{jeong2014mtcp} utilised an event-driven packet I/O library to divide incoming batches of packets into multiple queues written directly from the network interface and passed directly through into the user TCP~\cite[3.1]{jeong2014mtcp}.
+A common theme across many protocol implementations is the focus on reducing overhead due to data copying. Any copied data is potentially wasted time, especially if the same functionality could be programmed using a \textit{zero-copy} approach, where incoming packets are deposited directly from the network adapter into the user program without being duplicated one or more times. Many of the related works include some variation of a transmit/receive queue utilised by every layer from the NIC to the user program, minimal or zero data copying. \citeauthor{jeong2014mtcp} utilised an event-driven packet I/O library to divide incoming batches of packets into multiple queues written directly from the network interface and passed directly through into the user TCP~\cite[3.1]{jeong2014mtcp}.
 
 \citeauthor{braun:inria-00074040} took a different approach to reducing data copying where typically packet buffers are copied twice: once from the device to an input buffer queue then secondly into the application buffer. In certain situations, by the process of \textit{header prediction}, the kernel copies the header data only. Then assuming the predicted header size was correct, enclosed packet data is copied directly into the user program receive buffer~\cite[4.1]{braun:inria-00074040}. By modern standards this is less than optimal, as now there exists suitable methods to skip copying entirely and use memory-mapped buffers.
 
@@ -390,7 +389,7 @@ Another method for reducing context switches is to abolish them in favour of oth
 \subsubsection{Process signals} 
 POSIX defines a standard set of signals that can be sent between processes. A signal is an interrupt with a value associated with the intent of the destination process handling it. Signals are most commonly used to request or force termination of a process but can also be used for basic IPC\@. The function \texttt{kill(pid, signal)} is used for sending signals to a process. POSIX also defines a function \texttt{sigqueue(pid, signal, sigval)} which allows a single integer or pointer to the destination process.
 
-Paired with shared memory, signals can be an effective method of inter-process communication: shared memory to pass information and signalling to notify the sibling process of a change. To prevent concurrency errors locks such as \textit{mutual exclusions} should probably be used to prevent race conditions etc.
+Paired with shared memory, signals can be an effective method of inter-process communication: shared memory to pass information and signalling to notify the sibling process of a change. To prevent concurrency errors locks such as \textit{mutual exclusions} should probably be used to prevent concurrency errors like race conditions.
 
 \subsubsection{Unix pipes}
 A standard feature provided by all Unix-compatible operating systems is so called `pipes' which are memory-mapped files that join two processes together. They behave very similarly to files or sockets where data is written into the pipe and read back out on the other side. A communication protocol can be established and used to communicate from one process to another. A drawback of this mechanism is that it is unidirectional. Two pipes would have to be opened for bidirectional communication. There is also the overhead of writing, buffering and reading the response, via the kernel.
@@ -401,9 +400,8 @@ These behave very similarly to Unix pipes in that data is written in one side an
 \subsubsection{Semaphores}
 Most operating systems also define a signalling mechanism known as `Semaphores' which are an \textit{atomic} counter representing the state of a resource. Due to their inherent atomicity, they are very useful for providing signalling as well as locking to shared resources between processes. Semaphores can be used to convey intent to access a shared resource then lock it to prevent concurrency errors whilst it is locked. This approach also avoids unwanted context switches into the kernel to retrieve new data. Instead it is copied directly into the daemon process and also mapped into the destination process with communication to signal changes being direct between processes using the semaphore mechanism.
 
-For the purpose of this project, semaphores most likely will provide the best performance and flexibility when paired with memory-mapped network packets using shared memory. This complex combination of features will prove difficult to implement and will likely cause some difficult to solve errors however together they solve the task best out of the available options.
+For the purpose of this project, semaphores most likely will provide the best performance and flexibility when paired with memory-mapped network packets using shared memory. This complex combination of features will prove difficult to implement and will likely cause some difficult to solve errors however, together they solve the task best out of the available options.
 
-%\subsection{TCP timers}
 \subsection{Modes of Operation}
 \subsubsection{Inclusion as a library}
 Allowing the user flexibility with the network stack as a callable entity is the simplest situation as all that is required is a single library object with an API and sufficient usage documentation. It is the responsibility of the user application to call the networking initialisation routines, configure interfaces and perform optional inter-process communication if it is required. The network stack must be self-contained and thread-safe to prevent causing unwanted bugs in user programs.
@@ -426,7 +424,7 @@ Many of the execution routines for initialising the slave processes are similar 
 \subsection{TCP Implementation}
 Implementation of the internal TCP stack is actually one of the simplest tasks in the project as a whole. Provided the specification from RFC 793~\cite{rfc793} is followed closely, an interworking TCP stack should be produced. The algorithms defined in the specification document on packet, event and timer handling are straightforward and should pose few significant issues.
 
-Much of the complexity around TCP is in the wide range of optional extensions that are so widely used along with it. Many of the popular, well developed TCP stacks provide implementation for most of the well known extensions and options and many are still in general use by default. It is infeasible for this project to implement so many optional extras so just some of the important, frequently used options will be considered such as: `Selective \texttt{ACK}'~\ref{sec:sack}, `Window Scaling'~\ref{sec:wscale}, `TCP Timestamps' and some congestion control algorithms (including, but not limited to: slow start, fast retransmit, fast recovery and congestion avoidance).
+Much of the complexity around TCP is in the wide range of optional extensions that are so widely used along with it. Many of the popular, well-developed TCP stacks provide implementation for most of the well known extensions and options and many are still in general use by default. It is infeasible for this project to implement so many optional extras so just some of the important, frequently used options will be considered such as: `Selective \texttt{ACK}'~\ref{sec:sack}, `Window Scaling'~\ref{sec:wscale}, `TCP Timestamps' and some congestion control algorithms (including, but not limited to: slow start, fast retransmit, fast recovery and congestion avoidance).
 
 % Why do we use the Linux kernel's TCP stack?
 % https://jvns.ca/blog/2016/06/30/why-do-we-use-the-linux-kernels-tcp-stack/
@@ -439,29 +437,31 @@ In Linux, injecting function definitions into dynamic binaries using `libdl' is 
 
 Preloading and overloading functions in this way is trivial with the described methods. The hijack functions replacing the default system calls should perform some checks on provided arguments and forward relevant requests onto the userland network stack, otherwise fallback on calling the origin overloaded function.
 
-An issue arises with `file descriptors', the integer values assigned by the kernel to a process, representing the open file, socket or file-like object such as a memory-mapped file. Linux allocates file descriptors, linearly from 0, choosing the lowest available at the time of allocation. By default a process has 0, 1 and 2 opened as `stdin', `stdout' and `stderr' respectively. Typically a process has a limit of 4096 open file descriptors however this can be increased. The issue arises from picking a valid file descriptor to represent the custom socket object, instead of a kernel file, that will never cause ambiguity over which kind of file it refers to.
+An issue arises with `file descriptors', the integer values assigned by the kernel to a process, representing the open file, socket or file-like object such as a memory-mapped file. Linux allocates file descriptors, linearly from 0, choosing the lowest available at the time of allocation. By default a process has 0, 1 and 2 opened as `stdin', `stdout' and `stderr' respectively. Typically a process has a limit of 4096 open file descriptors however, this can be increased. The issue arises from picking a valid file descriptor to represent the custom socket object, instead of a kernel file, that will never cause ambiguity over which kind of file it refers to.
 
-One solution could be to allocate from the maximum, working backwards towards 0 however there is the very small chance that a process could exceed the limit and the two number ranges collide. Alternatively a kernel file descriptor could be opened, for each connection, representing the translated descriptor reference. Neither solutions are perfect but a robust solution needs to be found for the implementation.
+One solution could be to allocate from the maximum, working backwards towards 0 however, there is the very small chance that a process could exceed the limit and the two number ranges collide. Alternatively a kernel file descriptor could be opened, for each connection, representing the translated descriptor reference. Neither solutions are perfect but a robust solution needs to be found for the implementation.
 
 \subsection{Frames larger than the interface MTU}
-A performance enhancing feature found in many faster modern network interfaces is an integration with the kernel to offload ethernet, IP and TCP segment merging in the hardware to reduce the amount of packets that have to be fetched by the kernel into memory. TCP segments that are reconstructed larger than the MTU of the network interface can sometimes appear to have an invalid checksum. Some of the offload features that are responsible for this packet construction are known as `generic-receive-offload' or gso, `large-receive-offload' or lro as well as others that are specific to some network interfaces.
+A performance-enhancing feature found in many faster modern network interfaces is an integration with the kernel to offload ethernet, IP and TCP segment merging in the hardware to reduce the number of packets that have to be fetched by the kernel into memory. TCP segments that are reconstructed larger than the MTU of the network interface can sometimes appear to have an invalid checksum. Some of the offload features that are responsible for this packet construction are known as `generic-receive-offload' or gso, `large-receive-offload' or lro as well as others that are specific to some network interfaces.
 
 One solution to ensure packets always have a correct checksum is to enforce that these options are disabled with could be detrimental to performance but would otherwise solve the issue entirely. The assumption could be made that if checked that one or more of these options are enabled then TCP checksums should not be checked because it is assumed the network interface already checked and discarded invalid checksummed packets.
 
-Whilst this assumption probably should not be relied upon, it likely always holds true. Some research is required to confirm this hypothesis however assuming this holds, relying upon it would be a better solution to the issue without the performance impact of the first solution.
+Whilst this assumption probably should not be relied upon, it likely always holds true. Some research is required to confirm this hypothesis however, assuming this holds, relying upon it would be a better solution to the issue without the performance impact of the first solution.
 
 \subsection{Fighting the Linux TCP/IP stack \texttt{RST} packets}
-Running two TCP implementations side-by-side, segregated, on the same host causes a phenomenon where a packet intended for one stack that when received by the other is instantly rejected with a \texttt{RST} packet. The fundamental underlying issue is that there are two separate instances of a singleton process that should not co-exist however for the purposes of this project, another solution will have to be devised.
+Running two TCP implementations side-by-side, segregated, on the same host causes a phenomenon where a packet intended for one stack that when received by the other is instantly rejected with a \texttt{RST} packet. The fundamental underlying issue is that there are two separate instances of a singleton process that should not co-exist however, for the purposes of this project, another solution will have to be devised.
 
 Both stacks can be run in tandem, opening the same port on both to prevent instant reset responses being sent. This does not prevent both running implementations from responding to the request accordingly, confusing routers and the connection peer by duplicated responses.
 
 Use of iptables or libiptc, a library for communicating with iptables directly, rules can be systematically formulated to block communication on ports used by the user stack, preventing the kernel from realising the existence of the foreign connections and stopping unwanted reset packets from being transmitted. Equally the user stack can refrain, by default, from responding with reset packets to unrecognised segments that will instead be replied to by the kernel.
 
-As an alternative solution, a kernel module or modification could be implemented to make the kernel TCP stack aware of the user implementation and synchronise open ports to prevent unsolicited responses however whilst this solution is cleaner it is out of the scope of this project.
+As an alternative solution, a kernel module or modification could be implemented to make the kernel TCP stack aware of the user implementation and synchronise open ports to prevent unsolicited responses however, whilst this solution is cleaner it is out of the scope of this project.
 
 \subsection{Efficiently sending and receiving packets through the kernel interface}
 Discussion on this topic has been made at length in related works, Sections~\ref{sec:thruput}~\&~\ref{sec:reducecopy} and viable solutions for implementation, Sections~\ref{sec:netcomms}~\&~\ref{sec:impl-demult}.
 
+\section{Conclusion}
+In the past, some userland TCP/IP implementations have not been designed with efficiency or user flexibility as considerations and have therefore suffered as a result. Many of the issues raised in related documents, and in discussions within this article, have sufficiently optimal solutions when implemented with Unix and Linux primitives. Providing both a library and runtime binaries will aid the use of this tool in many different scenarios for both learning and testing. Combined with the planned documentation, source code and examples, the project should serve as an excellent tool for academics and learners alike.
 
 \printbibliography % chktex 1
 \end{multicols}
