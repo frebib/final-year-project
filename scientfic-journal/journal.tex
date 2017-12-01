@@ -289,7 +289,7 @@ Conversely, some alternate implementations exist for quite the opposite reasons 
 
 Many of the improvements suggested by \citeauthor{jeong2014mtcp}~\cite{jeong2014mtcp} are very intelligent applications of high speed network adapters and multicore processor systems, such as servers. Any TCP network stack that is to be run in these kinds of scenarios should consider these optimisations for improved performance. It is likely that many of the proposed enhancements would also benefit low-power single CPU systems too, with the most probable outcome being reduced latency and memory usage.
 
-\subsection{Demultiplexing TCP}
+\subsection{Demultiplexing TCP}\label{sec:demultiplex}
 \citeauthor{braun:inria-00074040} designed a modified BSD TCP/IP stack where the IP layer resides in the kernel and TCP is split in two between kernel and userspace into TCPU and TCPK respectively. TCP processing is moved mostly into the user region, residing as local code in the calling process. The only exception to this is the `demultiplexing' step, TCPK, where TCP frames are routed to the correct user program based on the ports and addresses from the IP layer packet, providing security for the receiving process.
 
 % Demultiplexing in userspace, or not
@@ -375,8 +375,33 @@ Standard virtual network adapters known as TUN and TAP adapters can also be used
 \subsubsection{libpcap}
 A popular tool for low-level packet capture is libpcap which was written precisely for that purpose. It provides many ways of sending and receiving low-level packet data, similar to the \texttt{socket()} API but with a more straightforward abstraction. Internally libpcap uses tpacket, when it is available, otherwise falls back to slower methods. The abstraction provided by libpcap would benefit this project little as it does not avoid the issue of redundant data copying and would add an unwanted extra dependency to the library.
 
-% Demultiplexing packets
-% TCP timers
+\subsection{Demultiplexing packets}\label{sec:impl-demult}
+`Demultiplexing' in the context of TCP packets is the process of delegating responsibility of processing to another place, based on a feature of the data. More specifically, it defines which process should handle a packet based on the TCP connection, and socket, it belongs to, determined by the IP addresses and ports in the packet. These 4 pieces of information together form the identifying `state' of a connection. Any packet containing the same 4 IP addresses and port number values belongs to the same connection.
+
+Following the discussion in Section~\ref{sec:demultiplex}, it was concluded that demultiplexing incoming packets in the kernel was the faster and more efficient solution as it reduces the amount of context switches by at least half. Also as discussed previously, given the aim and restrictions of the project, implementing in kernel-space cannot happen so it will reside in userspace.
+
+Resources wasted by userspace processes can often be caused by excessive \textit{context switching}, that is making \textit{system calls} into the kernel for example to read from a file, write to a socket or perform memory allocation operations. Context switches interrupt the normal process execution flow and schedule a switch to kernel mode for the syscall to be handled, before switching back. Each switch causes a small delay as the scheduler queues the events before they occur and the delays accumulate to a significant amount of time that could be otherwise used by the process to run computation.
+
+Reducing context switches is one method of reducing wasted CPU time and improving performance. Batching together requests such as incoming packet transfers is one way of achieving this. Packets can be queued in the ring buffer until there are enough to warrant a context switch to retrieve them.
+
+Another method for reducing context switches is to abolish them in favour of other communication methods such as sharing memory between processes. When transferring demultiplexed packets from the daemon process to the destination user process, the packet memory buffer can be mapped between the processes, giving them both access, and the only remaining context switch is to send a notification from one process to the other. This can be achieved through many methods:
+\subsubsection{Process signals} 
+POSIX defines a standard set of signals that can be sent between processes. A signal is an interrupt with a value associated with the intent of the destination process handling it. Signals are most commonly used to request or force termination of a process but can also be used for basic IPC\@. The function \texttt{kill(pid, signal)} is used for sending signals to a process. POSIX also defines a function \texttt{sigqueue(pid, signal, sigval)} which allows a single integer or pointer to the destination process.
+
+Paired with shared memory, signals can be an effective method of inter-process communication: shared memory to pass information and signalling to notify the sibling process of a change. To prevent concurrency errors locks such as \textit{mutual exclusions} should probably be used to prevent race conditions etc.
+
+\subsubsection{Unix pipes}
+A standard feature provided by all Unix-compatible operating systems is so called `pipes' which are memory-mapped files that join two processes together. They behave very similarly to files or sockets where data is written into the pipe and read back out on the other side. A communication protocol can be established and used to communicate from one process to another. A drawback of this mechanism is that it is unidirectional. Two pipes would have to be opened for bidirectional communication. There is also the overhead of writing, buffering and reading the response, via the kernel.
+
+\subsubsection{Unix domain sockets}
+These behave very similarly to Unix pipes in that data is written in one side and read out of the other. They have the advantage of being bidirectional by default as they are more closely modelled on continuous-stream network protocols like TCP\@. They are also created in the same way as network sockets, except the family \texttt{AF\_UNIX} is specified instead of \texttt{AF\_INET} as would be used for an internet socket.
+
+\subsubsection{Semaphores}
+Most operating systems also define a signalling mechanism known as `Semaphores' which are an \textit{atomic} counter representing the state of a resource. Due to their inherent atomicity, they are very useful for providing signalling as well as locking to shared resources between processes. Semaphores can be used to convey intent to access a shared resource then lock it to prevent concurrency errors whilst it is locked. This approach also avoids unwanted context switches into the kernel to retrieve new data. Instead it is copied directly into the daemon process and also mapped into the destination process with communication to signal changes being direct between processes using the semaphore mechanism.
+
+For the purpose of this project, semaphores most likely will provide the best performance and flexibility when paired with memory-mapped network packets using shared memory. This complex combination of features will prove difficult to implement and will likely cause some difficult to solve errors however together they solve the task best out of the available options.
+
+%\subsection{TCP timers}
 
 % Why do we use the Linux kernel's TCP stack?
 % https://jvns.ca/blog/2016/06/30/why-do-we-use-the-linux-kernels-tcp-stack/
