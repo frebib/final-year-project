@@ -181,14 +181,11 @@ definition]
 \setlength{\oddsidemargin}{2cm} % 2cm margin on the left for odd pages
 \setlength{\evensidemargin}{-1cm} % 2cm margin on the right for even pages
 
-\linespread{1.05}
-
 % Marginal notes
 \setlength{\marginparwidth}{.75in} % width of marginal notes
 \setlength{\marginparsep}{.125in} % space between marginal notes and text
 
-% Make each page fill up the entire page. comment this out if you
-% prefer.
+% Make each page fill up the entire page. comment this out if you prefer.
 \flushbottom
 
 \setcounter{tocdepth}{2} % Number the subsubsections
