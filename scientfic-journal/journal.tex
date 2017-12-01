@@ -76,7 +76,7 @@ Every connected operating system contains a TCP/IP implementation from it's vend
 
 Implementations in every major operating system allow for interaction with TCP via an \textit{Application Programming Interface} or API, to communicate with the enclosed network stack, however none of them allow access to view or modify the lower-level inner workings of the protocol. There are some use-cases where being able to interact, preview and utilise TCP can be useful, especially in software development and academic projects where low-level protocol access would be beneficial.
 
-\subsection{Aim}
+\subsection{Aim}\label{sec:aim}
 The primary aim of this project is to provide, as a \textit{user} software library, a callable, interactive TCP/IP stack that can be used standalone, as a system daemon, for use by multiple processes, or to be picked apart and analysed for educational purposes. The code will be provided in a modular way such that parts can be called as desired, or replaced with alternative implementations as to observe the difference between the two.
 
 It should also be globally compatible as only standard Linux features will be used ensuring maximum device compatibility.
@@ -404,6 +404,24 @@ Most operating systems also define a signalling mechanism known as `Semaphores' 
 For the purpose of this project, semaphores most likely will provide the best performance and flexibility when paired with memory-mapped network packets using shared memory. This complex combination of features will prove difficult to implement and will likely cause some difficult to solve errors however together they solve the task best out of the available options.
 
 %\subsection{TCP timers}
+\subsection{Modes of Operation}
+\subsubsection{Inclusion as a library}
+Allowing the user flexibility with the network stack as a callable entity is the simplest situation as all that is required is a single library object with an API and sufficient usage documentation. It is the responsibility of the user application to call the networking initialisation routines, configure interfaces and perform optional inter-process communication if it is required. The network stack must be self-contained and thread-safe to prevent causing unwanted bugs in user programs.
+
+\subsubsection{Running as a standalone program}
+As only one process is involved in the lifecycle of this scenario, complex inter-process communication is not necessary and the demultiplexing stage of processing can be simplified and internalised.
+This is the more common use-case for this project, providing a single network stack with one or more sockets in short-lived processes. For example, the given usage suggestion in Section~\ref{sec:aim} is representative of how a standalone tool might be used.
+
+TCP connections will be processed within the process, directly alongside demultiplexing, all running in separate threads to the main process worker thread. Standard libc function calls such as \texttt{socket()}, \texttt{read()} and \texttt{write()} will have to be hijacked and redirected to the in-process stack instead of the standard operation of making system calls. This can be accomplished through a feature of the dynamic loader, `ld', that loads shared libraries into dynamic binaries at runtime. A hijacking library can be injected before the execution of the process starts to redirect the relevant function calls using `libdl' and initialise the internal network stack, before resuming the normal process entry point.
+
+\subsubsection{Running as a system daemon}\label{sec:standalone}
+Complexity in the form of required inter-process communication and distributed connection tracking is required for this scenario. A separate daemon process gives the freedom to run many sibling processes, with one or more open sockets each, all handled through the single `master' daemon. The requirement for this to work is solid communication channel between the master and slave processes using the discussed methods in Section~\ref{sec:impl-demult}.
+
+Many of the execution routines for initialising the slave processes are similar to those in Section~\ref{sec:standalone}. The differences are that a connection will be attempted to the master daemon process to initialise and shutdown connections created by the \texttt{socket()} call. This construction should provide flexibility to run in one of two operating methods:
+\begin{enumerate}
+    \item{All TCP connections are handled by the master process}: \textit{Slave processes will call \texttt{read()} and \texttt{write()} to request data from the master process. Demultiplexing and TCP processing happen concurrently, for all TCP connections across all processes, in the single daemon process, and just payload data is exchanged with the destination process.}
+    \item{TCP connections are handled by the individual destination processes} \textit{The daemon process is only responsible for exchange of network packets from the interface and demultiplexing packets before they are handed over to the client applications for TCP processing.}
+\end{enumerate}
 
 % Why do we use the Linux kernel's TCP stack?
 % https://jvns.ca/blog/2016/06/30/why-do-we-use-the-linux-kernels-tcp-stack/
