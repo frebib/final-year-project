@@ -346,7 +346,7 @@ By moving processing from kernel to userspace, protections such as obscurity fro
 
 Building a TCP/IP stack is a layered process, similarly to how network protocols are layered. To be able to process TCP, there should be a solid IP protocol to route packets. Before IP can be handled an ethernet layer is required so frames can be retrieved and decoded.
 
-\subsection{Network communication}
+\subsection{Network communication}\label{sec:netcomms}
 The first stage of this implementation is to procure and decode ethernet frames that arrive at the network adapter. Linux provides several methods of reading and writing `raw' network packets to and from the wire:
 \subsubsection{Raw Sockets}
 \begin{Verbatim}[fontsize=\small]
@@ -408,13 +408,13 @@ For the purpose of this project, semaphores most likely will provide the best pe
 \subsubsection{Inclusion as a library}
 Allowing the user flexibility with the network stack as a callable entity is the simplest situation as all that is required is a single library object with an API and sufficient usage documentation. It is the responsibility of the user application to call the networking initialisation routines, configure interfaces and perform optional inter-process communication if it is required. The network stack must be self-contained and thread-safe to prevent causing unwanted bugs in user programs.
 
-\subsubsection{Running as a standalone program}
+\subsubsection{Running as a standalone program}\label{sec:standalone}
 As only one process is involved in the lifecycle of this scenario, complex inter-process communication is not necessary and the demultiplexing stage of processing can be simplified and internalised.
 This is the more common use-case for this project, providing a single network stack with one or more sockets in short-lived processes. For example, the given usage suggestion in Section~\ref{sec:aim} is representative of how a standalone tool might be used.
 
 TCP connections will be processed within the process, directly alongside demultiplexing, all running in separate threads to the main process worker thread. Standard libc function calls such as \texttt{socket()}, \texttt{read()} and \texttt{write()} will have to be hijacked and redirected to the in-process stack instead of the standard operation of making system calls. This can be accomplished through a feature of the dynamic loader, `ld', that loads shared libraries into dynamic binaries at runtime. A hijacking library can be injected before the execution of the process starts to redirect the relevant function calls using `libdl' and initialise the internal network stack, before resuming the normal process entry point.
 
-\subsubsection{Running as a system daemon}\label{sec:standalone}
+\subsubsection{Running as a system daemon}
 Complexity in the form of required inter-process communication and distributed connection tracking is required for this scenario. A separate daemon process gives the freedom to run many sibling processes, with one or more open sockets each, all handled through the single `master' daemon. The requirement for this to work is solid communication channel between the master and slave processes using the discussed methods in Section~\ref{sec:impl-demult}.
 
 Many of the execution routines for initialising the slave processes are similar to those in Section~\ref{sec:standalone}. The differences are that a connection will be attempted to the master daemon process to initialise and shutdown connections created by the \texttt{socket()} call. This construction should provide flexibility to run in one of two operating methods:
@@ -435,30 +435,33 @@ Much of the complexity around TCP is in the wide range of optional extensions th
 
 \section{Implementation Issues}
 \subsection{Hijacking the BSD \texttt{socket()} API calls} % chktex 36
-% Allocating file descriptors such that they don't clash with standard kernel fds
+In Linux, injecting function definitions into dynamic binaries using `libdl' is trivial with the use of the environment variable \texttt{LD\_PRELOAD}. It refers to a dynamic object or library to preload into the runtime loader pool, overriding any functions that are defined in the preloaded library which are normally loaded from a library in the default runtime path. See discussion about this in Section~\ref{sec:standalone}.
+
+Preloading and overloading functions in this way is trivial with the described methods. The hijack functions replacing the default system calls should perform some checks on provided arguments and forward relevant requests onto the userland network stack, otherwise fallback on calling the origin overloaded function.
+
+An issue arises with `file descriptors', the integer values assigned by the kernel to a process, representing the open file, socket or file-like object such as a memory-mapped file. Linux allocates file descriptors, linearly from 0, choosing the lowest available at the time of allocation. By default a process has 0, 1 and 2 opened as `stdin', `stdout' and `stderr' respectively. Typically a process has a limit of 4096 open file descriptors however this can be increased. The issue arises from picking a valid file descriptor to represent the custom socket object, instead of a kernel file, that will never cause ambiguity over which kind of file it refers to.
+
+One solution could be to allocate from the maximum, working backwards towards 0 however there is the very small chance that a process could exceed the limit and the two number ranges collide. Alternatively a kernel file descriptor could be opened, for each connection, representing the translated descriptor reference. Neither solutions are perfect but a robust solution needs to be found for the implementation.
 
 \subsection{Frames larger than the interface MTU}
-% Caused by 'segmentation offloading'
-% Affects TCP checksums on packets greater than MSS/MTU
+A performance enhancing feature found in many faster modern network interfaces is an integration with the kernel to offload ethernet, IP and TCP segment merging in the hardware to reduce the amount of packets that have to be fetched by the kernel into memory. TCP segments that are reconstructed larger than the MTU of the network interface can sometimes appear to have an invalid checksum. Some of the offload features that are responsible for this packet construction are known as `generic-receive-offload' or gso, `large-receive-offload' or lro as well as others that are specific to some network interfaces.
 
-% Using iptables or libiptc to drop RST on specific ports
+One solution to ensure packets always have a correct checksum is to enforce that these options are disabled with could be detrimental to performance but would otherwise solve the issue entirely. The assumption could be made that if checked that one or more of these options are enabled then TCP checksums should not be checked because it is assumed the network interface already checked and discarded invalid checksummed packets.
+
+Whilst this assumption probably should not be relied upon, it likely always holds true. Some research is required to confirm this hypothesis however assuming this holds, relying upon it would be a better solution to the issue without the performance impact of the first solution.
+
 \subsection{Fighting the Linux TCP/IP stack \texttt{RST} packets}
-%  - Port can't be used by the kernel and could clash?
-%  - outside of /proc/sys/net/ipv4/ip_local_port_range
-% Opening the socket to accept the connection
-%  - Eventually socket will timeout
-%  - Doesn't block any packets from actually getting out
-% Kernel module/extension to prevent RST being generated
-%  - Could be quicker but defeats isn't truly userspace
+Running two TCP implementations side-by-side, segregated, on the same host causes a phenomenon where a packet intended for one stack that when received by the other is instantly rejected with a \texttt{RST} packet. The fundamental underlying issue is that there are two separate instances of a singleton process that should not co-exist however for the purposes of this project, another solution will have to be devised.
+
+Both stacks can be run in tandem, opening the same port on both to prevent instant reset responses being sent. This does not prevent both running implementations from responding to the request accordingly, confusing routers and the connection peer by duplicated responses.
+
+Use of iptables or libiptc, a library for communicating with iptables directly, rules can be systematically formulated to block communication on ports used by the user stack, preventing the kernel from realising the existence of the foreign connections and stopping unwanted reset packets from being transmitted. Equally the user stack can refrain, by default, from responding with reset packets to unrecognised segments that will instead be replied to by the kernel.
+
+As an alternative solution, a kernel module or modification could be implemented to make the kernel TCP stack aware of the user implementation and synchronise open ports to prevent unsolicited responses however whilst this solution is cleaner it is out of the scope of this project.
 
 \subsection{Efficiently sending and receiving packets through the kernel interface}
-\cite{tpacket} % chktex 2
-% "it requires one system call to capture each packet, it requires two if you want to get packet's timestamp"
-% Use a zero-copy interface like Linux tpacket_v{1,2,3}
-%   BSD socket API doesn't allow for zero-copy as it has no notion of packet buffers and payload segmentation
-% Communicating data between daemon and user process without copy (SHM?)
+Discussion on this topic has been made at length in related works, Sections~\ref{sec:thruput}~\&~\ref{sec:reducecopy} and viable solutions for implementation, Sections~\ref{sec:netcomms}~\&~\ref{sec:impl-demult}.
 
-% Signal handling, such as SIGSTP breaking timing
 
 \printbibliography % chktex 1
 \end{multicols}
