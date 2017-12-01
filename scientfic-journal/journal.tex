@@ -79,6 +79,8 @@ Implementations in every major operating system allow for interaction with TCP v
 \subsection{Aim}
 The primary aim of this project is to provide, as a \textit{user} software library, a callable, interactive TCP/IP stack that can be used standalone, as a system daemon, for use by multiple processes, or to be picked apart and analysed for educational purposes. The code will be provided in a modular way such that parts can be called as desired, or replaced with alternative implementations as to observe the difference between the two.
 
+It should also be globally compatible as only standard Linux features will be used ensuring maximum device compatibility.
+
 Multiple similar programs exist that provide many of the same features, but none that are drop-in replacements for the inbuilt kernel stack that can be run without configuration as a userland application without the need for recompilation of the calling process. This project's aim is to provide a very simple user experience, where the network stack can be invoked at runtime to replace the traditional system calls:
 
 \begin{center}
