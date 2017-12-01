@@ -1,16 +1,20 @@
 \documentclass[11pt,a4paper,british]{bhamarticle}
-\usepackage[margin=7em]{geometry}
+\usepackage[margin=6.7em,bottom=8em,footskip=4em]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{multicol}
 \usepackage{float}
 \usepackage{babel}
 \usepackage{csquotes}
 \usepackage{isodate}
+\usepackage{fancyvrb}
+
+% chktex-file 36
 
 \usepackage{tikz}
 \usetikzlibrary{calc,arrows}
 
 \usepackage{enumitem}
+\renewcommand\labelitemi{--}
 \setlist[itemize]{leftmargin=*}
 
 \usepackage[
@@ -37,7 +41,7 @@
 % Fix paragraph spacing and use of noindent
 \usepackage[parfill]{parskip}
 \usepackage[raggedright]{titlesec}
-\setlength{\columnsep}{18pt}
+\setlength{\columnsep}{14pt}
 \titlespacing{\section}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsection}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsubsection}{0pt}{1.4\parskip}{0.2\parskip}
@@ -261,7 +265,6 @@ There have been many varying implementations of Congestion Avoidance algorithms 
 
 Popular algorithms for this are: Vegas, BIC, CUBIC, Westwood, Reno, Tahoe and New Reno. Typically `New Reno' is used in Unix systems today as it provides the best performance and stability with minimal changes required to either sender or receiver.
 
-\subsection{Connection states}
 
 % TODO: Fix tenses (to past, mostly)
 \section{Literature Review}
