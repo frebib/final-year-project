@@ -1,3 +1,3 @@
-[submodule "netd"]
-	path = netd
-	url = git@github.com:frebib/netd.git
+[submodule "netstack"]
+	path = netstack
+	url = git@github.com:frebib/netstack.git
