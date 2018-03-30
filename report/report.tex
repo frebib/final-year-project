@@ -1,0 +1,76 @@
+\documentclass[11pt,a4paper,british,twocolumn]{bhamarticle}
+\usepackage[utf8]{inputenc}
+\usepackage{multicol}
+\usepackage{float}
+\usepackage{babel}
+\usepackage{csquotes}
+\usepackage{isodate}
+\usepackage{fancyvrb}
+
+\usepackage{report}
+
+% chktex-file 36
+
+% Configure bibliography
+\usepackage[backend=biber,sorting=none,citestyle=numeric-comp]{biblatex}
+\usepackage[hidelinks]{hyperref}
+\addbibresource{references.bib}
+
+\title{A TCP/IP networking stack implementation in userland}
+\author{Joe Groocock -- 1467414} % chktex 8
+\supervisor{Dr Ian Batten}
+\department{Computer Science}
+\degree{MSc in Computer Science}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+% TODO: Make abstract relevant to final project
+% - it states the problem that you set out to solve
+% - it describes your solution and method
+% - it states a conclusion about the success of the solution
+\begin{abstract}
+    TCP/IP networking stacks included in most modern operating systems are opaque to the user and mostly unconfigurable. This article aims to design and produce a coherent specification for an efficient, high performance TCP/IP network stack that can be used as a software library, standalone application or system-wide daemon to provide network access to many applications. It is provided as a learning and academic research tool that can be tweaked, extended and analysed in depth to aid in gaining a better understanding of how operating systems handle networking and TCP/IP as whole.
+\end{abstract}
+
+\section{Introduction}
+% Describe the problem to be solved
+
+    \subsection{Background}
+    % Explain enough background to understand the problem
+
+    % Clearly state project aims
+    % Provide an overview of structure of solution?
+    % Explain what is in each section of this document
+
+\section{Related work}
+% Copy in related work from lit review
+
+\section{Specification}
+    \subsection{Requirements}
+
+\section{Design}
+    \subsection{Language choice}
+    \subsection{Threading \& Locking}
+    % refcount
+    % pthread_cond
+
+\section{Testing}
+    % CI building
+    % multiple libc impl, multiple compilers
+    \subsection{Logging}
+
+\section{Project Management}
+
+\section{Results}
+
+\section{Evaluation} % Discussion
+
+\section{Conclusion}
+
+\printbibliography % chktex 1
+
+\end{document}
