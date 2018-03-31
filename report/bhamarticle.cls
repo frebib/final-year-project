@@ -187,8 +187,9 @@ definition]
         {\z@}{1.4\parskip}{0.2\parskip}
         {\normalfont\normalsize\bfseries}
 }
-\newcommand*\l@subsubsubsection{\@dottedtocline{3}{10.0em}{4.1em}}
+\newcommand*\l@subsubsubsection{\@dottedtocline{4}{7em}{4.1em}}
 \newcommand*{\subsubsubsectionmark}[1]{}
+\providecommand*{\toclevel@subsubsubsection}{4}
 \makeatother
 
 \pagestyle{plain}
