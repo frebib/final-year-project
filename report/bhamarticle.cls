@@ -63,7 +63,7 @@ definition]
 % }
 
 \renewenvironment{abstract}
-{\begin{center}\begin{minipage}{0.9\columnwidth}\section*{\abstractname}\vspace{0.5em}\begingroup}
+{\begin{center}\begin{minipage}{0.9\columnwidth}\section*{\centering\normalsize\abstractname}\vspace{0.5em}\begingroup}
 {\endgroup\end{minipage}\end{center}}
 
 \newenvironment{acknowledgments}%
