@@ -2,12 +2,118 @@
 
 \section{Design}
     \subsection{Layered Architecture}
+        \begin{figure}[H]
+            \fontsize{7pt}{7pt}
+            \centering
+            \begin{tikzpicture}[node distance=1.9em and 2.0em]
+                \node [box] (rs) {Raw Socket};
+                \node [box, above = of rs] (e) {Ethernet};
+                \node [box, above = of e] (ipv4) {IPv4};
+                \node [box, above right = of ipv4, xshift=-3em] (tcp) {TCP};
+                \node [box, above left = of ipv4,xshift=3em] (icmp) {ICMP};
+                \node [box, left = of e] (arp) {ARP};
+                \node [box, above = of arp] (r) {Routing};
+                \node [box, right = of rs] (tap) {TAP device};
+                \node [box, above = of tap] (tun) {TUN device};
+
+                \node [left  = of rs, xshift=-5em] (1) {\parbox[l]{6.5em}{\raggedleft\textcolor{gray}{\textit{Physical (1)}}}};
+                \node [above = of 1]               (2) {\parbox[l]{6.5em}{\raggedleft\textcolor{gray}{\textit{Link (2)}}}};
+                \node [above = of 2]               (3) {\parbox[l]{6.5em}{\raggedleft\textcolor{gray}{\textit{Internet (3)}}}};
+                \node [above = of 3]               (4) {\parbox[l]{6.5em}{\raggedleft\textcolor{gray}{\textit{Transport (4)}}}};
+
+                \draw[-] (rs) -- (e);
+                \draw[-] (e.south east) -- (tap.north west);
+                \draw[-] (ipv4.south east) -- (tun.north west);
+                \draw[-{Stealth[open,scale=1.6]}] (e) -- (ipv4);
+                \draw[-{Stealth[open,scale=1.6]}] (ipv4) -- (r);
+                \draw[-{Stealth[open,scale=1.6]}] (r.south east) -- (e.north west);
+                \draw[-] (arp) -- (r);
+                \draw[-] (arp) -- (e);
+                \draw[-] (ipv4) -- (tcp.south);
+                \draw[-] (ipv4) -- (icmp.south);
+            \end{tikzpicture}
+            \caption{Protocol layers}\label{fig:layer-arch}
+        \end{figure}
+
+        Network protocols are, by design, layered~(\ref{fig:layer-arch}). This design feature can be used as a building block to structure, both semantically and in code, how the program layers will slot together.At the bottom of modern networks is the \emph{link layer}, in almost every case \emph{ethernet}. At this level, whole packets `datagrams' are exchanged between the outside world and the network stack through one or more \emph{interface}s. The method for receiving and sending these packets is unimportant but the interface for doing so must be standardised to allow for interchangeable interfaces at runtime. Depending on the operating system or use-case requirements, it may be preferable to use different interface implementations for the situation. \todo{Ref to interface type choices here}
+
+        Within the ethernet packets can reside many different protocols; the particular one of importance for most internet applications is the \emph{internet protocol}, specifically version 4. It should be noted that the newer and much improved IPv6 should also be accessible here, as a drop-in replacement, or to be run alongside IPv4 at the same time.
+
+        Resolution of 48-bit ethernet hardware addresses, required for routing IPv4 packets to devices on the local network before they can be sent, is performed by the \emph{address resolution protocol} (ARP). This protocol also leverages the lower ethernet packets as transport.
+
+        The ambiguity of payload type within the ethernet packets is resolved with a type field in the header of the ethernet packet with fixed values defined by IEEE~\cite{ieee-ethertype}. Given this information, a choice can be made for each incoming packet to which upper layer protocol the data should be forwarded to. This pluggable design makes implementation simple as well as future compatibility with newer protocols.
+
+        Much like the nested and layered nature of ethernet and inner protocols, the internet protocol is much the same. Two of the vast collection of protocols that run within IP that this software is focusing on are \emph{transmission control protocol} (TCP) and \emph{internet control message protocol} (ICMP)\@. Whilst both having a completely different structure and design, both IPv4 and IPv6 share one common trait: they are interchangeable in the sense that the data they carry is identical and the link layers that carry them are the same. Provided two or more communicating hosts in a connection support one common IP version a link can be established, providing the same internet communication layer guarantees for upper protocols, regardless of IP version used.
+
     \subsection{TCP buffer management}
+        As specified in RFC793~\cite{rfc793}, there is no requirement to retain out-of-order received segments, nor is it required to reconstruct outgoing retransmission segments, but in both cases retaining this extra data can be useful. Typically this optimisation can yield minor improvements in performance at the cost of greater memory usage or additional re-computation.
+
+        Historically, copying data between buffers has been slow so the amount of buffers used should be kept to a minimum. Modern memory copy implementations are highly optimised and the overhead is minimal in comparison to naively copying bytes but still should be considered.
+
+        \subsubsection{Transmission Buffers}
+            Caching of outgoing segments before \texttt{ACK}s arrive can negate the requirement for an additional send buffer to hold the unacknowledged data however does also require retaining the potentially unwanted header information attached to the stored packets too. To reduce retransmission overhead, it is common to simply retransmit the original segments instead of reconstructing them from more up-to-date information. Implementations in popular operating systems like Linux and Windows use a hybrid approach where one or more of the original segments is retransmitted initially followed by newly crafted packets upon receipt of an ACK for the initial retransmission(s). \\ % chktex 36
+            There are both benefits and drawbacks to this approach, one being that retransmitted segments do not have to be recomputed, reducing overhead. Unmodified segments will likely not contain the latest control information such as window size or \texttt{ACK} value; in this case these packets will be almost indistinguishable to a delayed segment to the peer TCP\@.
+
+            In some cases, partially full packets are retransmitted which can be considered unfulfilled potential as the ratio of control information to payload is lower than optimal when there is extra data in the retransmission queue. Reconstructing or amending smaller segments, incorporating more data to saturate the packet, can improve throughput and reduce latency. One of the major performance-limiting factors of TCP connections, especially those over high-latency links, is waiting for replies or timeouts. When the quantity of packets sent (and as a result, waited on) can be reduced, the delay in completing transfer can be ultimately reduced.
+
+            The strategy chosen for this implementation was using a copy-through send buffer requiring every segment to be recomputed before retransmission. It has the immediate advantage of being much simpler to implement as no management of stored frames needs to occur as well as the other advantages of every sent segment being as up-to-date as possible and the lower storage overhead.
+
+        \subsubsection{Receive Buffers}
+            It is completely valid and legal to immediately discard an incoming out-of-order segment, and is the default behaviour of many primitive embedded TCP stacks. In doing so the receiving TCP is committing to the requirement that the sender \textit{must} retransmit the dropped segment as it cannot be acknowledged.
+
+            Most competent TCP implementations queue out-of-order segments for later processing as their sequence number becomes the next awaited unacknowledged value. There are many considerations that go along with this approach such as much of the control information attached to the queued packets (e\.g\. the send window) should be considered outdated and therefore invalid. \\
+            As well as data segments, control-only packets such as FIN segments should also be retained so that they do not have to be retransmitted- an out-of-order FIN should be treated the same as an out-of-order data segment.
+
+            Much like the send buffer, the reasoning for the choice of received packet buffering was for ease of implementation, without wastefully dropping segments. All incoming segments are pushed, in sequence, into a receive queue, ready to be retrieved by a successive \texttt{recv} call by the user process. \\
+            Whilst this does not allow for queuing of common out-of-order FIN control segments, it does accommodate for regular data segment reordering significantly reducing retransmission occurrences, especially in lossy environments.
+
     \subsection{No specific API requirement}
         % designed in a way that it can sit below any kind of API..
     \subsection{Language choice}
         % c is good
         % rust is probably ok
         % go is bad - Hayo 2k18
+
     % standard format for returning errors
     \subsection{Error Handling}
+        As with most things in C, error handling must be implemented by the programmer. There are many ``standard'' methods of handling errors and they vary wildly between projects. The standard used by POSIX defined libc functions requires the use of a thread-local/global variable to track error values, known as \texttt{errno}, is roughly defined as follows:
+        \begin{center}
+            \begin{minipage}{0.88\columnwidth}
+                \begin{itemize}[noitemsep]
+                    \item{\texttt{return\ \ -1} on error, setting errno}
+                        \begin{itemize}
+                            \item[]{\small e.g.\ \texttt{errno = EINVAL;\ return -1}}
+                        \end{itemize}
+                    \item{\texttt{return = 0} on success}
+                    \item{\texttt{return > 0} with value}
+                \end{itemize}
+            \end{minipage}
+        \end{center}
+        \vspace{\parskip}
+
+        For this project I opted to use a similar but cleaner approach:
+        \begin{center}
+            \begin{minipage}{0.88\columnwidth}
+                \begin{itemize}[noitemsep]
+                    \item{\texttt{return < 0} on error, negative value}
+                        \begin{itemize}
+                            \item[]{\small e.g.\ \texttt{return -EINVAL}}
+                        \end{itemize}
+                    \item{\texttt{return = 0} on success}
+                    \item{\texttt{return > 0} with value}
+                        \begin{itemize}
+                            \item[]{\small e.g.\ \texttt{return 20} \textcolor{gray}{{\tiny\#} number of bytes read}}
+                        \end{itemize}
+                \end{itemize}
+            \end{minipage}
+        \end{center}
+        \vspace{\parskip}
+
+        Having a well-defined standard for how errors should be handled removed any ambiguity in the code about how errors should be handled. Even though the semantics differs from that used by standard library functions, it integrated very easily with the use of a standard pattern, mapping from one to the other.
+
+        This simpler design has two immediate advantages over the libc standard approach:
+        \begin{itemize}[noitemsep]
+            \item{There is no requirement for a global error storage; errors are just returned from the function call with no (extra) side-effects.}
+            \item{Memory utilisation of return values is better as there is less wasted space of values less than 1. POSIX defines \texttt{ssize\_t} `to represent sizes of blocks that can be read or written in a single operation.' It must be a signed type to be able to accommodate -1, 0 and positive block sizes. On most (probably all) systems, it is defined as a signed long integer meaning any values representable less than -1 are unused.}
+        \end{itemize}
+
