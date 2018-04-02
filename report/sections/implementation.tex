@@ -1,0 +1,39 @@
+%! TEX root = ../report.tex
+
+% A detailed account of the implementation and testing of your software
+% Explain the conceptual structure of the algorithms.
+% Also explain what data structures you used
+    % how the algorithms were implemented
+% What implementation decisions did you take, and why?
+    % There is no need to list every little function and procedure and explain its working in elaborate detail; use your judgement on what is appropriate to include
+
+\section{Implementation}
+\todo{Describe the basic packet-flow operation}
+    
+    \subsection{Memory Management}
+        % refcounting
+        \subsubsection{Refcounting}
+
+    % logging with macros for verbose logs
+    \subsection{Logging}
+
+    \subsection{Standalone Library}
+        % netstack_init()
+        % netstack_cleanup()
+        %
+    \subsection{Header casting}
+
+    \section{Socket API}
+        \subsection{Netstack API}
+        \subsection{BSD Socket API}
+
+    \subsection{Issues}
+        \subsubsection{Standards}
+        % RFC 793 is incomplete and very vague
+        \subsubsection{Threading \& Locking}
+        % refcount
+        % pthread_cond
+
+        % BSD socket API design
+        % non-blocking I/O (poll/select) :(
+

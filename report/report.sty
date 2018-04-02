@@ -14,9 +14,6 @@
 \titlespacing{\subsubsection}{0pt}{1.4\parskip}{0.2\parskip}
 \titlespacing{\subsubsubsection}{0pt}{1.4\parskip}{0.2\parskip}
 
-% Make each page fill up the entire page. comment this out if you prefer.
-\flushbottom
-
 % Number the subsubsections
 \setcounter{tocdepth}{3}
 
@@ -25,3 +22,9 @@
 \renewcommand\labelitemi{--}
 \setlist[itemize]{leftmargin=*}
 
+% todo command
+\newcommand{\todo}[1]{}
+\renewcommand{\todo}[1]{\textbf{\color{red} TODO: {#1}}}
+
+\let\stdsection\section
+\renewcommand\section{\allowbreak\stdsection}

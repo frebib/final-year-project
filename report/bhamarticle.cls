@@ -47,21 +47,6 @@ definition]
 % clearemptydoublepage from page 92 of The LaTeX Companion 1993.
 \newcommand{\clearemptydoublepage}{\newpage{\pagestyle{empty}\cleardoublepage}}
 
-% \renewenvironment{abstract}
-% {%
-%   \clearemptydoublepage
-%   \null\vspace{\fill}
-%   \small
-%   \begin{center}
-%     {\bfseries \abstractname\vspace{-.5em}\vspace{\z@}}%
-%   \end{center}
-%   \begingroup
-% }{%
-%   \endgroup
-%   \vspace{\fill}
-%   \newpage
-% }
-
 \renewenvironment{abstract}
 {\begin{center}\begin{minipage}{0.9\columnwidth}\section*{\centering\normalsize\abstractname}\vspace{0.5em}\begingroup}
 {\endgroup\end{minipage}\end{center}}
