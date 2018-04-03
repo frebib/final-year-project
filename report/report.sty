@@ -7,12 +7,13 @@
 
 % Fix paragraph spacing and use of noindent
 \usepackage[parfill]{parskip}
-\usepackage[raggedright]{titlesec}
+\usepackage[raggedright,nobottomtitles]{titlesec}
+\renewcommand{\bottomtitlespace}{4em}
 \setlength{\columnsep}{16pt}
-\titlespacing{\section}{0pt}{1.4\parskip}{0.2\parskip}
-\titlespacing{\subsection}{0pt}{1.4\parskip}{0.2\parskip}
-\titlespacing{\subsubsection}{0pt}{1.4\parskip}{0.2\parskip}
-\titlespacing{\subsubsubsection}{0pt}{1.4\parskip}{0.2\parskip}
+\titlespacing{\section}{0pt}{2.4\parskip plus 0.4\parskip minus 0.2\parskip}{0pt} % chktex 1
+\titlespacing{\subsection}{0pt}{1.4\parskip plus 0.4\parskip minus 0.2\parskip}{0pt} % chktex 1
+\titlespacing{\subsubsection}{0pt}{1.2\parskip plus 0.4\parskip minus 0.2\parskip}{0pt} % chktex 1
+\titlespacing{\subsubsubsection}{0pt}{1.1\parskip plus 0.4\parskip minus 0.2\parskip}{0pt} % chktex 1
 
 % Number the subsubsections
 \setcounter{tocdepth}{3}
@@ -24,7 +25,11 @@
 
 % todo command
 \newcommand{\todo}[1]{}
-\renewcommand{\todo}[1]{\textbf{\color{red} TODO: {#1}}}
+\renewcommand{\todo}[1]{\textbf{\color{red} TODO:\ {#1}}}
 
-\let\stdsection\section
+\let\stdsection\section % chktex 1
+\let\stdsubsection\subsection % chktex 1
+\let\stdsubsubsection\subsubsection % chktex 1
 \renewcommand\section{\allowbreak\stdsection}
+\renewcommand\subsection{\allowbreak\stdsubsection}
+\renewcommand\subsubsection{\allowbreak\stdsubsubsection}
