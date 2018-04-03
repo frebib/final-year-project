@@ -9,10 +9,10 @@
 
 \section{Implementation}
 \todo{Describe the basic packet-flow operation}
-    
+
     \subsection{Memory Management}
         % refcounting
-        \subsubsection{Refcounting}
+        \subsubsection{Reference Counting}
 
     % logging with macros for verbose logs
     \subsection{Logging}
@@ -21,11 +21,25 @@
         % netstack_init()
         % netstack_cleanup()
         %
-    \subsection{Header casting}
 
-    \section{Socket API}
-        \subsection{Netstack API}
-        \subsection{BSD Socket API}
+    \subsection{Header Manipulation}
+
+    \subsection{Interfaces}\label{sec:intf}
+
+    \subsection{Internet Protocol}
+
+        \subsubsection{Routing}
+
+    \subsection{\mbox{Address Resolution Protocol}}
+
+    \subsection{TCP}
+        \subsubsection{Segment Arrives}
+        \subsubsection{Retransmission}
+        \subsubsection{Concurrency}
+
+    \subsection{Socket API}
+        \subsubsection{Netstack API}
+        \subsubsection{BSD Socket API}
 
     \subsection{Issues}
         \subsubsection{Standards}

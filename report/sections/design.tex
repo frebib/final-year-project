@@ -67,7 +67,7 @@
             Much like the send buffer, the reasoning for the choice of received packet buffering was for ease of implementation, without wastefully dropping segments. All incoming segments are pushed, in sequence, into a receive queue, ready to be retrieved by a successive \texttt{recv} call by the user process. \\
             Whilst this does not allow for queuing of common out-of-order FIN control segments, it does accommodate for regular data segment reordering significantly reducing retransmission occurrences, especially in lossy environments.
 
-    \subsection{No specific API requirement}
+    \subsection{\mbox{No specific API requirement}}
         % designed in a way that it can sit below any kind of API..
     \subsection{Language choice}
         % c is good
