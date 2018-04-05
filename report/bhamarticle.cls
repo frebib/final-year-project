@@ -129,7 +129,6 @@ definition]
       \end{large}
     \end{spacing}
   \end{titlepage}
-  \pagenumbering{arabic}
 }%\maketitle
 
 
