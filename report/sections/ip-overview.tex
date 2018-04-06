@@ -1,6 +1,6 @@
 %! TEX root = ../report.tex
 
-\subsection{Internet Protocol Overview}\label{sec:intro-ip}
+\section{Internet Protocol Overview}\label{sec:intro-ip}
 The Internet Protocol, or as it is more commonly known, IP, provides global addressing across networks. IP mandates that every interconnected host must have an IP address to be able to communicate. It also ensures that any interconnected hosts can communicate with any other interconnected host, given thier address through the process of routing, regardless of the physical distance or barriers. The largest IP network of all is the `internet' where any device with an address can (in theory) communicate with any other device, anywhere across the planet.
 
 % Talk about IPv4 vs IPv6
@@ -9,17 +9,17 @@ To date there have been two prominent versions of IP, both of which are still in
 Following the massive success of IPv4 is version 6 of the IP suite. Drafted as a standard in 1998 to replace IPv4 and to resolve the impending IPv4 address exhaustion problem boasting significantly more usable host addresses and many smaller incremental improvements over the previous version 4. Only reaching maturity as an official `Internet Standard' in mid 2017, acceptance and adoption has been slow but is picking up much needed traction to eventually match and finally overtake the dated and problematic IPv4 in coming years.
 
         % Compare addressing schemes
-    \subsubsection{Terminology}
+    \subsection{Terminology}
     \todo{Should there be a glossary for this?}
 
-    \subsubsection{Addressing}
+    \subsection{Addressing}
     IPv4 packets allocate 32 bits for host addresses, for each source and destination. Given every combination of those values, it results in roughly 4.3 million address ($4.3 \times 10^{9}$ \textit{OR} $2^{32}$). Due to reserved groups and lack of foresight during the design phase, only about 3.7 million of those addresses are usable due to reserved allocation such as those defined in RFC 1918 and other wastage of various kinds.
 
     IPv4 implements `Network Address Translation' (NAT) which is an ugly hack to compensate for the ever-growing demand for addresses, even after there are no more available. NAT works by translating one or more public facing addresses to many private addresses, bidirectionally. It has been twisted and contorted as it has evolved to allow many clients make simultaneous outgoing connections from behind the same IP address and even accept incoming connections given the correct configuration.
 
     IPv6 \textit{addressess} the major caveat in version 4 of the protocol with much larger address values of 128 bits which results in roughly 340 undecillion ($3.4 \times 10^{38}$ \textit{OR} $2^{128}$) usable addresses. The available addressable space is so vast that currently only a small portion is available for public use and the smallest division that can be allocated by a provider is $2^{64}$ addresses.
 
-    \subsubsection{Subnets}
+    \subsection{Subnets}
     Subnets are divisions of the whole IP space, useful for allocating pieces to the entities that own rights to them. Traditionally, subnets were defined `classfully' where the value of the address defined how large the network it belonged to was. Primarily there were three classes of varying sizes:
     \begin{itemize}
         \item{Class A occupied half of the IPv4 space ranging from \texttt{0.0.0.0/8} to \texttt{128.0.0.0/8}, consisting of 256 networks of $2^{24}$ hosts each.}
@@ -33,7 +33,7 @@ Following the massive success of IPv4 is version 6 of the IP suite. Drafted as a
 
     CIDR has for the most part replaced classful networks and is used in both IPv4 and IPv6 for defining network subdivisions.
 
-        \subsubsubsection{Subnetting example}
+        \subsubsection{Subnetting example}
         Given the typical example host address \texttt{192.168.8.99/24}, similar to one that may be found in consumer hardware used in a small home network, the following information can be extrapolated:
         \begin{itemize}[noitemsep]
             \item{The host address is \texttt{192.168.8.99}}
@@ -45,7 +45,7 @@ Following the massive success of IPv4 is version 6 of the IP suite. Drafted as a
         \end{itemize}
 
     % Explain what it is an how it works. interconnected graph, with routers
-    \subsubsection{Routing}
+    \subsection{Routing}
     Communications are exchanged between internet hosts through a process called `routing'. Packets are dispatched from the source and propogate through one router at a time until they arrive at their destination.
 
     Routes are defined per interface as a combination of an IP address and a `subnet mask' in CIDR form. Packets can be either delivered directly to the destination host, if it resides within one of the local subnets, or via a router.

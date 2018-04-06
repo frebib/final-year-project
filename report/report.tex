@@ -1,18 +1,16 @@
-\documentclass[11pt,a4paper,british,twocolumn]{bhamarticle}
+\documentclass[11pt,a4paper,british,twocolumn]{bhamreport}
 \usepackage[utf8]{inputenc}
-\usepackage{multicol}
 \usepackage{float}
+\usepackage{listings}
+\usepackage{multicol}
 \usepackage{babel}
 \usepackage{csquotes}
 \usepackage{isodate}
 \usepackage[usenames, dvipsnames]{color,xcolor}
-\usepackage{listings}
-
-\usepackage[hidelinks]{hyperref}
-\hypersetup{colorlinks, linkcolor={red!50!black}, citecolor={blue!50!black}, urlcolor={blue!80!black}}
 
 % Configure bibliography
 \usepackage[backend=biber,sorting=none,citestyle=numeric-comp]{biblatex}
+\usepackage[hidelinks]{hyperref}
 \addbibresource{references.bib}
 
 \usepackage{report}
@@ -35,8 +33,11 @@
 
 \maketitle
 
+\begingroup
+\let\onecolumn\twocolumn
 \tableofcontents
-\newpage
+\endgroup
+
 \pagenumbering{arabic}
 
 % TODO: Make abstract relevant to final project

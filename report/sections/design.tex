@@ -1,7 +1,7 @@
 %! TEX root = ../report.tex
 
-\section{Design}
-    \subsection{Layered Architecture}
+\chapter{Design}
+    \section{Layered Architecture}
         \begin{figure}[H]
             \fontsize{7pt}{7pt}
             \centering
@@ -45,12 +45,12 @@
 
         Much like the nested and layered nature of ethernet and inner protocols, the internet protocol is much the same. Two of the vast collection of protocols that run within IP that this software is focusing on are \emph{transmission control protocol} (TCP) and \emph{internet control message protocol} (ICMP)\@. Whilst both having a completely different structure and design, both IPv4 and IPv6 share one common trait: they are interchangeable in the sense that the data they carry is identical and the link layers that carry them are the same. Provided two or more communicating hosts in a connection support one common IP version a link can be established, providing the same internet communication layer guarantees for upper protocols, regardless of IP version used.
 
-    \subsection{TCP buffer management}
+    \section{TCP buffer management}
         As specified in RFC793~\cite{rfc793}, there is no requirement to retain out-of-order received segments, nor is it required to reconstruct outgoing retransmission segments, but in both cases retaining this extra data can be useful. Typically this optimisation can yield minor improvements in performance at the cost of greater memory usage or additional re-computation.
 
         Historically, copying data between buffers has been slow so the amount of buffers used should be kept to a minimum. Modern memory copy implementations are highly optimised and the overhead is minimal in comparison to naively copying bytes but still should be considered.
 
-        \subsubsection{Transmission Buffers}
+        \subsection{Transmission Buffers}
             Caching of outgoing segments before \texttt{ACK}s arrive can negate the requirement for an additional send buffer to hold the unacknowledged data however does also require retaining the potentially unwanted header information attached to the stored packets too. To reduce retransmission overhead, it is common to simply retransmit the original segments instead of reconstructing them from more up-to-date information. Implementations in popular operating systems like Linux and Windows use a hybrid approach where one or more of the original segments is retransmitted initially followed by newly crafted packets upon receipt of an ACK for the initial retransmission(s). \\ % chktex 36
             There are both benefits and drawbacks to this approach, one being that retransmitted segments do not have to be recomputed, reducing overhead. Unmodified segments will likely not contain the latest control information such as window size or \texttt{ACK} value; in this case these packets will be almost indistinguishable to a delayed segment to the peer TCP\@.
 
@@ -58,7 +58,7 @@
 
             The strategy chosen for this implementation was using a copy-through send buffer requiring every segment to be recomputed before retransmission. It has the immediate advantage of being much simpler to implement as no management of stored frames needs to occur as well as the other advantages of every sent segment being as up-to-date as possible and the lower storage overhead.
 
-        \subsubsection{Receive Buffers}
+        \subsection{Receive Buffers}
             It is completely valid and legal to immediately discard an incoming out-of-order segment, and is the default behaviour of many primitive embedded TCP stacks. In doing so the receiving TCP is committing to the requirement that the sender \textit{must} retransmit the dropped segment as it cannot be acknowledged.
 
             Most competent TCP implementations queue out-of-order segments for later processing as their sequence number becomes the next awaited unacknowledged value. There are many considerations that go along with this approach such as much of the control information attached to the queued packets (e\.g\. the send window) should be considered outdated and therefore invalid. \\
@@ -67,15 +67,16 @@
             Much like the send buffer, the reasoning for the choice of received packet buffering was for ease of implementation, without wastefully dropping segments. All incoming segments are pushed, in sequence, into a receive queue, ready to be retrieved by a successive \texttt{recv} call by the user process. \\
             Whilst this does not allow for queuing of common out-of-order FIN control segments, it does accommodate for regular data segment reordering significantly reducing retransmission occurrences, especially in lossy environments.
 
-    \subsection{\mbox{No specific API requirement}}
+    \section{\mbox{No specific API requirement}}
         % designed in a way that it can sit below any kind of API..
-    \subsection{Language choice}
+
+    \section{Language choice}
         % c is good
         % rust is probably ok
         % go is bad - Hayo 2k18
 
     % standard format for returning errors
-    \subsection{Error Handling}
+    \section{Error Handling}
         As with most things in C, error handling must be implemented by the programmer. There are many ``standard'' methods of handling errors and they vary wildly between projects. The standard used by POSIX defined libc functions requires the use of a thread-local/global variable to track error values, known as \texttt{errno}, is roughly defined as follows:
         \begin{center}
             \begin{minipage}{0.88\columnwidth}

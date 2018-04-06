@@ -1,5 +1,11 @@
 % Set up page layout.
-\usepackage[margin=6.2em,bottom=8em,footskip=4em]{geometry}
+\usepackage[margin=6.2em,top=6em,bottom=8em,footskip=4em]{geometry}
+
+% Number the subsubsections
+\setcounter{tocdepth}{2}
+
+% Set line spacing
+\linespread{1.05}
 
 % Marginal notes
 \setlength{\marginparwidth}{.75in} % width of marginal notes
@@ -10,22 +16,13 @@
 \usepackage[raggedright,nobottomtitles]{titlesec}
 \renewcommand{\bottomtitlespace}{4em}
 \setlength{\columnsep}{16pt}
-\titlespacing{\section}{0pt}{2.4\parskip plus 0.4\parskip minus 0.2\parskip}{0pt} % chktex 1
-\titlespacing{\subsection}{0pt}{1.4\parskip plus 0.4\parskip minus 0.2\parskip}{0pt} % chktex 1
-\titlespacing{\subsubsection}{0pt}{1.2\parskip plus 0.4\parskip minus 0.2\parskip}{0pt} % chktex 1
-\titlespacing{\subsubsubsection}{0pt}{1.1\parskip plus 0.4\parskip minus 0.2\parskip}{0pt} % chktex 1
-
-% Number the subsubsections
-\setcounter{tocdepth}{3}
 
 % Stylise lists
 \usepackage{enumitem}
 \renewcommand\labelitemi{--}
 \setlist[itemize]{leftmargin=*}
 
-% todo command
-\newcommand{\todo}[1]{}
-\renewcommand{\todo}[1]{\textbf{\color{red} TODO:\ {#1}}}
+\usepackage{todonotes}
 
 \let\stdsection\section % chktex 1
 \let\stdsubsection\subsection % chktex 1

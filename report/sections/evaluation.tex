@@ -1,27 +1,28 @@
 %! TEX root = ../report.tex
 
-\section{Evaluation} % Discussion
+\chapter{Evaluation} % Discussion
     % how it went
-    \subsection{Issues that I thought were going to be but weren't actually issues}
+    \section{Issues that I thought were going to be but weren't actually issues}
         % refer to journal section 5
     % how it could be improved
-    \subsection{Improvements}
+    \section{Improvements}
         % send/recv buffer implementation (recv buffer structure is a better design and should be used for send buffers too)
-        \subsubsection{Send/Receive Buffers}
+        \subsection{Send/Receive Buffers}
+            % send buffer can double-up as being used for retransmission tracking too instead of storing a separate list
 
         % parameterised ip/route specification
-        \subsubsection{Addressing Configuration}
+        \subsection{Addressing Configuration}
             % IP address, routes
             % MAC addresses
         % queue'd out-of-order packets to be re-processed for control (FIN), not just for payload
-        \subsubsection{Out-of-order TCP queuing}
+        \subsection{Out-of-order TCP queuing}
 
-        \subsubsection{Parallel Processing Efficiency}
+        \subsection{Parallel Processing Efficiency}
             % One thread per _established_ TCP connection
                 % Do NOT start a thread for every SYN packet to prevent SYN flood DoS attacks
 
     % where the project should go from here
-    \subsection{Future Work}
+    \section{Future Work}
         % everything in improvements, obvs
         % TCP extensions for improved performance/throughput & reduced overhead
         % configuration
@@ -29,5 +30,5 @@
                 % disable anything below particular errors
         % system-wide network daemon with IPC library
             % see journal section 4.4
-        \subsubsection{Use cases}
+        \subsection{Use cases}
 

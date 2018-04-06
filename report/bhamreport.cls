@@ -6,10 +6,10 @@
 % the thesis.sty written at UofT by fpitt.
 % (bernecky@acm.org)
 
-% Revised by Joe Groocock (2017) for use with articles
+% Revised by Joe Groocock (2017) for use with reports
 
 \NeedsTeXFormat{LaTeX2e}[1995/12/01]
-\ProvidesClass{bhamarticle}[1997/07/15 University of Birmingham Article class
+\ProvidesClass{bhamreport}[1997/07/15 University of Birmingham report class
 definition]
 \RequirePackage{setspace,graphicx}
 
@@ -24,7 +24,7 @@ definition]
 % Set up handling of "draft" option.
 \DeclareOption{draft}{%
   \PassOptionsToPackage{all}{draftcopy}%
-  \PassOptionsToClass{draft}{article}%
+  \PassOptionsToClass{draft}{report}%
   \AtEndOfClass{%
     \RequirePackage{draftcopy}%
     % I wanted to print timestamp of each file, but I don't see
@@ -33,22 +33,22 @@ definition]
   }%
 }
 
-% Pass ALL options to article.cls.
+% Pass ALL options to report.cls.
 \DeclareOption*{%
-  \PassOptionsToClass{\CurrentOption}{article}
+  \PassOptionsToClass{\CurrentOption}{report}
 }
 
 \ProcessOptions
 
 
-\LoadClass{article}
+\LoadClass{report}
 % Set up environments for thesis sections.
 
 % clearemptydoublepage from page 92 of The LaTeX Companion 1993.
 \newcommand{\clearemptydoublepage}{\newpage{\pagestyle{empty}\cleardoublepage}}
 
 \renewenvironment{abstract}
-{\begin{center}\begin{minipage}{0.9\columnwidth}\section*{\centering\normalsize\abstractname}\vspace{0.5em}\begingroup}
+{\begin{center}\begin{minipage}{0.85\textwidth}\section*{\centering\normalsize\abstractname}\vspace{0.5em}\begingroup}
 {\endgroup\end{minipage}\end{center}}
 
 \newenvironment{acknowledgments}%

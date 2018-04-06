@@ -7,46 +7,73 @@
 % What implementation decisions did you take, and why?
     % There is no need to list every little function and procedure and explain its working in elaborate detail; use your judgement on what is appropriate to include
 
-\section{Implementation}
+\chapter{Implementation}
 \todo{Describe the basic packet-flow operation}
 
-    \subsection{Memory Management}
-        % refcounting
-        \subsubsection{Reference Counting}
+    \section{Standalone Library}
 
-    % logging with macros for verbose logs
-    \subsection{Logging}
-
-    \subsection{Standalone Library}
         % netstack_init()
         % netstack_cleanup()
         %
 
-    \subsection{Header Manipulation}
+    \section{Header Manipulation}
 
-    \subsection{Interfaces}\label{sec:intf}
+    \section{Interfaces}\label{sec:intf}
 
-    \subsection{Internet Protocol}
+    \section{Internet Protocol}
 
-        \subsubsection{Routing}
+        \subsection{Routing}
 
-    \subsection{\mbox{Address Resolution Protocol}}
+    \section{\mbox{Address Resolution Protocol}}
 
-    \subsection{TCP}
-        \subsubsection{Segment Arrives}
-        \subsubsection{Retransmission}
-        \subsubsection{Concurrency}
+    \section{Sockets}
 
-    \subsection{Socket API}
-        \subsubsection{Netstack API}
-        \subsubsection{BSD Socket API}
+    \section{TCP}
 
-    \subsection{Issues}
-        \subsubsection{Standards}
+        \subsection{Segment Arrives}
+
+
+
+
+
+
+        \subsection{Concurrency}
+
+    \section{Socket API}
+        \subsection{Netstack API}
+        % TCP user functions join together the internal tcp calls and perform error checking.
+        % Perform sufficient locking to prevent concurrent modification of the state whilst it's being read
+
+            \subsubsection{Send}
+            % Calls tcp_send_data
+            % Waits for space in send window
+
+            \subsubsection{Recieve}
+            % Copies the largest contiguous available byte range
+            % Waits for incoming segments
+
+
+        \subsection{BSD Socket API}
+            % socket, bind, listen, connect, send, recv, shutdown all work
+            % getsockopt, setsockopt, fcntl implemented but do nothing
+            % O_NONBLOCK isn't working
+
+    \section{Memory Management}
+
+        % refcounting
+        \subsection{Reference Counting}
+
+    % logging with macros for verbose logs
+    \section{Logging}
+
+    \section{Issues}
+        \subsection{Standards}
         % RFC 793 is incomplete and very vague
-        \subsubsection{Threading \& Locking}
+
+        \subsection{Threading \& Locking}
         % refcount
         % pthread_cond
+        % arp request waiting on recv thread
 
         % BSD socket API design
         % non-blocking I/O (poll/select) :(

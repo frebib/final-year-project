@@ -1,9 +1,9 @@
 %! TEX root = ../report.tex
 
-\subsection{TCP Overview}
+\section{TCP Overview}
     Modern TCP is a very complex protocol with many extensions and experimental variations. This overview mostly covers the essentials as defined by the original specification, RFC~793~\cite{rfc793}. Extensions or variations are very useful for improving performance and reliability but absolutely not required for a functioning TCP. % chktex 13
 
-    \subsubsection{Terminology}
+    \subsection{Terminology}
         \begin{itemize}
             \item \texttt{SYN}: Synchronise flag\\
                 \textit{Set to establish a new connection}
@@ -16,7 +16,7 @@
             \item Bit field: \textit{Binary data where each individual bit represents a boolean value e.g. 0 or 1}
         \end{itemize}
 
-    \subsubsection{TCP packet header}
+    \subsection{TCP packet header}
         A TCP packet, or segment, contains an initial header followed by the packet payload. The header can be a variable length but is always at least 20 bytes and at most 60 bytes so small payloads are an inefficient use of a segment as there is always a 20+ byte overhead, per packet. The header is always a multiple of 32 bits (4 bytes) which is the \textit{word size} for the TCP header, and is padded with zeros to fill any remaining space.
 
         Most of the information carried in the header is metadata for identifying the connection and the data within the packet. Many of the values such as Sequence Number and Window size correspond to the sender; each peer will have their own individual values.
@@ -61,7 +61,7 @@
             \item \textbf{Payload} \textit{0-MSS bytes} Sequenced data for the TCP connection. Can be empty. Limited by the \textit{MSS} of the connection.
         \end{itemize}
 
-    \subsubsection{Connection-oriented}
+    \subsection{Connection-oriented}
         One of the defining features of TCP is the famous \textit{three-way handshake}~(Figure~\ref{fig:threeway}) that every connection begins and ends with.
 
         \begin{figure}[H]
@@ -119,7 +119,7 @@
                     \end{tabular}
                 };
             \end{tikzpicture}
-            \caption{Three-way handshake}\label{fig:threeway}
+            \caption{TCP Three-way handshake}\label{fig:threeway}
         \end{figure}
 
         A client requests a new connection by sending an initial packet with the \texttt{SYN} bit set, as well as an initial random \textit{Sequence number}. When a packet marked with \texttt{SYN} is received at the server, a new connection is being established and the server replies with a \texttt{SYN}/\texttt{ACK} packet. This reply does one of two things:
@@ -140,50 +140,50 @@
 
         Following this pattern ensures both peers are in agreement of the state of the connection at all times. If at any point an invalid connection request is sent, to a closed port for example, it is instantly replied to with an \texttt{RST} packet indicating that the client should immediately discard of the connection as it is invalid.
 
-    \subsubsection{Ordered}
+    \subsection{Ordered}
         \textit{Sequence numbers} are used to track each individual byte sent over the connection. For each byte successfully received by the peer, the acknowledgement number is incremented to that value. Each packet contains a sequence number for the first byte of the payload in that segment indicating the position of the data in the continuous stream. If a packet arrives out of order, it can be kept aside until it is required or dropped and it will be retransmitted. Data that has been sent but not acknowledged is assumed to be lost so, after a timeout, it is retransmitted.
 
         Quite often, especially with small local networks or across short distances, for the most part packets will arrive in order and complete so little retransmission is required, just some reordering and payload reassembly.
 
         There are various methods of tracking missing packets, storing and reordering packets, indicating that packets are lost to reduce retransmission latency and so on that are used in TCP implementations which can improve performance and throughput in many cases, however, they are not required for basic TCP functionality.
 
-    \subsubsection{Reliable}\label{sec:reliable}
+    \subsection{Reliable}\label{sec:reliable}
         Acknowledging data is the first method used by TCP to ensure that all data arrives intact. The sender keeps track of the sequence number of the last acknowledgement it received and also keeps buffered the transmitted but unacknowledged data in the case where it has to be retransmitted. As data is received at the client, acknowledgements are sent in reply confirming the data was received.
 
         Complementing that, a primitive checksum known as the \textit{Internet Checksum} is used to verify integrity of the data. By modern standards it is a very poor checksum implementation, however, it is very fast to compute and is still sufficient to ensure no serious corruption has occurred. In most cases, even if the checksum is still valid, corruption caused to the header could be detected and the packet will be discarded likely due to out-of-band sequence numbers or similar. The \textit{Internet Checksum} is defined as ``the 16 bit one's complement of the one's complement sum of all 16 bit words in the header and text''~\cite[3.1]{rfc793}.
 
-    \subsubsection{Extensible}
+    \subsection{Extensible}
         TCP has a vast array of extensions, specified in the `Option' section at the end of the packet header, that are used to fix many issues, improve performance and add extra functionality. This section will cover the commonly used options of note, but there are many more that are widely used and some still in development.
 
-        \subsubsubsection{Window Scaling}\label{sec:wscale}
             At the advent of TCP, networks were comparatively slow of only a few Megabits per second, however, technology has advanced and now links are available in excess of 100 Gigabits per second. The default \textit{Window size} defined in TCP is only 64KiB which at 100Gbps can be filled in just 5 microseconds which can slow down transmission dramatically as the buffer has to be cleared before it can be filled again. To leverage these blistering transfer speeds, Window Scaling~\cite[2]{rfc1323} was introduced to increase the size of the default receive window. 
+        \subsubsection{Window Scaling}\label{sec:wscale}
 
             Window scaling must be negotiated during the initial handshake of the connection; a client requests wscale in the first \texttt{SYN} packet to which the peer replies with a wscale option in the returning \texttt{SYN}/\texttt{ACK} segment, confirming the choice to use scaling for the remainder of the connection. Should no reply to the wscale option be sent, it is assumed the peer does not support window scaling and therefore the connection must operate without scaling.
 
             The option specifies a scale value between 0 and 14 which should be applied as a \textit{bitwise left shift} to the window size allowing a maximum receive window size of 1GiB ($65536 << 14$). It is completely valid to negotiate a `zero' shift in one direction to disable scaling for one client.
 
-        \subsubsubsection{Selective \texttt{ACK}}\label{sec:sack}
+        \subsubsection{Selective \texttt{ACK}}\label{sec:sack}
             Acknowledgements are part of the reason TCP is so useful, but in particularly poor network conditions, the performance of TCP can suffer from excessive retransmissions, driving latency up and throughput down. Often in lossy transfers only a small amount of packets will be lost but TCP defines that data should be acknowledged until that point and all data afterwards will be retransmitted. It is often that most or all data after a missing packet will have arrived successfully but would be unnecessarily retransmitted.
 
             Selective \texttt{ACK} aims to reduce and abolish retransmissions for data that has already arrived by indicating to the sender which blocks have or have not arrived. It is an option appended specifically to \texttt{ACK} packets to give more detail about which byte ranges should be retransmitted. The option has a variable payload length to allow inclusion of the left and right boundaries of each block that is being acknowledged.
 
-        \subsubsubsection{Nagle's Algorithm}
             \citeauthor{rfc896} proposed in \citeyear{rfc896} the concept of reducing the amount of small packets being transmitted by buffering outgoing data for a small period of time before sending it. This is today known as \textit{Nagle's Algorithm} which is defined to address the ``small packet problem'' by not transmitting new data whilst there is still unacknowledged data in transmission. Sent data is queued indefinitely in the transmit buffer until an acknowledgement is received or until the buffer contains enough data to fill at least one segment.
+        \subsubsection{\citeauthor{rfc896}'s Algorithm}
 
             The segment size in this case is the \textit{Maximum Segment Size} calculated by the lowest MTU in the route between the two communicating nodes, minus the header sizes. MSS tends to be 1460, or less, assuming the standard Ethernet (IEEE 802.3) MTU of 1500 is used.
 
-        \subsubsubsection{TCP Corking}
+        \subsubsection{TCP Corking}
             Linux implements a feature typically referred to as \texttt{TCP\_CORK} which is similar in nature to the operation of Nagle's Algorithm. The ultimate goal of corking is the same as Nagle, but is achieved in a different way. Corking will always buffer data, even after the reception of an acknowledgement, until there is enough to fill a segment or until the timeout has passed.  Linux uses a default corking timeout of 200ms.
 
-        \subsubsubsection{Congestion Control}
+        \subsubsection{Congestion Control}
             One of the final main features of TCP is the ability to survive and recover from network congestion with the use of complex control algorithms. Congestion control actually refers to a set of tools that a TCP should have, discussed in detail in the following sections:
 
-        \subsubsubsection{Slow Start}
+        \subsubsection{Slow Start}
             A connection between two nodes is limited by the speed of the slowest intermediary node, such as a router, network interface or switch. To avoid overwhelming any of these devices resulting in packet loss, a TCP should assume the worst-case and start transmitting slowly. Congestion controlled TCP implementations maintain \textit{congestion window} which is the representation to the sender of the state of congestion in the network between the connected peers.
 
             Slow start initialises a small congestion window, usually a small multiple of the MSS\@. Each time data is transmitted, the sender only releases at most the amount specified by the congestion window. For each acknowledgement received for all transmitted data, the congestion window is increased, often by a factor of two. Each subsequent transmission will be larger than the previous as the congestion window increases. When a lost segment is detected, slow start will stop and the standard linear growth Congestion Avoidance algorithm will kick in.
 
-        \subsubsubsection{Congestion Avoidance}
+        \subsubsection{Congestion Avoidance}
             There have been many varying implementations of Congestion Avoidance algorithms with ranging feature sets for different scenarios. Some offer fast recovery, smaller loss or improved throughput. The aim of these algorithms is to continue a stable transmission between the two hosts whilst preventing subsequent packet loss by over-sending and overloading the network.
 
             Popular algorithms for this are: Vegas, BIC, CUBIC, Westwood, Reno, Tahoe and New Reno. Typically `New Reno' is used in Unix systems today as it provides the best performance and stability with minimal changes required to either sender or receiver.
