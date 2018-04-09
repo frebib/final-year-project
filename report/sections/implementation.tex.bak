@@ -8,14 +8,10 @@
     % There is no need to list every little function and procedure and explain its working in elaborate detail; use your judgement on what is appropriate to include
 
 \chapter{Implementation}\label{chp:impl}
-
-    \section{Packet Flow}
-    As a packet is read out of the network interface, it is cloned and logged to acknowledge that it has been received. The packet is pushed into the network stack at the relevant layer defined by the operating protocol of the interface. Packets propagate through one layer at a time, with each layer performing sanity checks, address checks and other scrutinisation. If the checks succeed, packets will arrive at the processing for the destination protocol for the packet type. Processing varies between protocols but often responses to the incoming packets are generated. The response data makes the same trip through the protocol stack, but in reverse, re-visiting each layer as before but in the opposite order. Along the way, addressing information and extra headers will be prepended until it reaches the final protocol of the interface. Before getting dispatched, the final outgoing packet is cloned and passed through the logger before being sent along on its way back out of the system.
-
-    Only packets destined for the local addresses continue on to processing, everything else is dropped as soon as there is an address mismatch. Many incoming packets will be destined for other devices on the network and will be silently ignored.
+\todo{Describe the basic packet-flow operation}
 
     \section{Interfaces}\label{sec:intf}
-    To support the requirement of dynamic and interchangeable interfaces, an abstraction defining what a network interface should provide was developed, based loosely on the information provided by \texttt{netdevice(7)}. At the most basic level, it must be able to send and receive packets of a given protocol. Figure~\ref{fig:intf-struct} outlines the critical features of the interface structure. % chktex 36
+    To support the requirement of dynamic and interchangeable interfaces, an abstraction defining what a network interface should provide was developed, based loosely on the information provided by \texttt{netdevice(7)}. At the most basic level, it must be able to send and receive packets of some given protocol. Figure~\ref{fig:intf-struct} outlines the critical features of the interface structure. % chktex 36
 
     \begin{figure}[H]
         \begin{center}
@@ -61,90 +57,21 @@
 
     An implementation of the interface struct provides functionality for the major components making up the interface.
     \begin{itemize}
-        \item{\texttt{intf->recv\_frame} is an indefinitely blocking function call, much like \texttt{recv(2)} from the \gls{BSD} socket \gls{API}\@. Within the interface receive thread, this function is repeatedly called to wait for and retrieve incoming packets, allocate required buffer space for the payload and return them in the provided \texttt{frame} argument.} % chktex 36
+        \item{\texttt{intf->recv\_frame} is an indefinitely blocking function call, much like \texttt{recv(2)} from the BSD socket API\@. Within the interface receive thread, this function is repeatedly called to wait for and retrieve incoming packets, allocate required buffer space for the payload and return them in the provided \texttt{frame} argument.} % chktex 36
         \item{\texttt{intf->send\_frame} is called at multiple points from within the network stack by processes attempting to dispatch populated packets. The implementation \textit{should} block if a packet cannot be sent immediately}
         \item{\texttt{intf->new\_buffer} and \texttt{intf->free\_buffer} are used internally within the network stack to allocate buffers for new packets. These are used in place of \texttt{malloc(3)} and \texttt{free(3)} to allow for interface implementations that use pre-allocated packet buffers.} % chktex 36
     \end{itemize}
 
-    Currently the only interface implementation is a `raw socket' which exchanges ethernet frames through the standard \texttt{send(2)} and \texttt{recv(2)} socket system calls. Packets are dispatched via \texttt{sendto(2)} through into the lower parts of the kernel network stack. As every sent and received packet requires a system call, the overhead of constant context switching is detrimental to the performance of this method. % chktex 36
+    Currently the only interface implementation is a `raw socket' which exchanges ethernet frames through the standard \texttt{send(2)} and \texttt{recv(2)} socket system calls. Packets are dispatched via \texttt{sendto(2)} through into the lower parts of the kernel network stack. As every sent and received packet requires a system call, the overhead of constant context switching is detrimental to the performance of this method (see Section~\todo{Reference section about context switching}). % chktex 36
 
     Interfaces that operate on different packet levels, such as TUN devices which communicate at the IP layer, are accounted for by setting \texttt{intf->proto} to the relevant protocol, in the case of TUN that would be \texttt{PROTO\_IP}. As outgoing packets work their way down the protocol stack, a check is made at each layer to directly dispatch the frame to the interface when the protocol matches that of the relevant interface.
 
     \section{Frames}
-    Every incoming packet that is read from an interface or outgoing packet to be crafted is wrapped in a frame. The frame structure provides basic state tracking about the contents of the protocol layers inside. A frame tracks layer state including the location of header and data of the current protocol. It is passed to the first protocol \texttt{recv} routine where the header is parsed directly from the first bytes in the packet data. Based on the length of the header of the protocol in question, and potentially protocol specific parsing rules, the location of data within the packet is identified. After one round of identifying the header and data bounds, the frame pointers may look something like the example in Figure~\ref{fig:frame-breakdown}.
 
-    \begin{figure}[H]
-        \begin{center}
-            \setlength{\tabcolsep}{2pt}
-            \begin{tikzpicture}[
-                node distance=0em,
-                every node/.style={%
-                    inner sep=0.7em,
-                    outer sep=0,
-                    draw=black!80,
-                    thick
-                }
-            ]
-                \node [minimum width=9em,fill=cyan!30]                (hdr) {packet header};
-                \node [minimum width=9em,minimum height=5em,fill=yellow!20,below=of hdr] (data) {packet data};
-                \node [minimum width=9em,minimum height=2em,fill=gray!20,below=of data] (extra) {unknown};
-
-                \draw [->,gray!80,thick] ([xshift=-1.4em]hdr.north west)  -- ([xshift=-0.6em]hdr.north west)
-                        node[draw=none,text=gray,left,xshift=-0.6em, yshift=0.55em] {\texttt{frame->buff}}
-                        node[draw=none,text=gray,left,xshift=-0.6em, yshift=-0.55em] {\texttt{frame->head}};
-
-                \draw [->,gray!80,thick] ([xshift=-1.4em]data.north west)  -- ([xshift=-0.6em]data.north west)
-                        node[draw=none,text=gray,left,xshift=-0.6em] {\texttt{frame->data}};
-
-                \draw [->,gray!80,thick] ([xshift=-1.4em]extra.north west)  -- ([xshift=-0.6em]extra.north west)
-                        node[draw=none,text=gray,left,xshift=-0.6em] {\texttt{frame->tail}};
-            \end{tikzpicture}
-        \end{center}
-        \caption{Frame packet breakdown}\label{fig:frame-breakdown}
-    \end{figure}
-
-    In most cases a packet contains multiple protocols, nested inside each other. When passing from one layer to the next, the frame pointers are moved to represent the inner protocol locations. The start location of the inner protocol header is the data from the outer layer, and the new data location somewhere after that. Figure~\ref{fig:frame-breakdown-2} demonstrates a second layer of packet nesting in a frame.
-
-    \begin{figure}[H]
-        \begin{center}
-            \setlength{\tabcolsep}{2pt}
-            \begin{tikzpicture}[
-                node distance=0em,
-                every node/.style={%
-                    inner sep=0.7em,
-                    outer sep=0,
-                    draw=black!80,
-                    thick
-                }
-            ]
-                \node [minimum width=9em,fill=cyan!30] (hdr) {outer header};
-                \node [minimum width=1em,minimum height=6em,fill=yellow!20,align=center,below=of hdr.south east,anchor=north east] (data) {};
-                \node [minimum width=8em,minimum height=2em,fill=RoyalBlue!40,align=center,below=of hdr.south west,anchor=north west] (inhdr) {inner header};
-                \node [minimum width=8em,minimum height=4em,fill=ForestGreen!40,align=center,below=of inhdr] (indata) {inner data};
-                \node [minimum width=9em,minimum height=2em,fill=gray!20,below=of data.south east,anchor=north east] (extra) {unknown};
-
-                \draw [->,gray!80,thick] ([xshift=-1.4em]hdr.north west)  -- ([xshift=-0.6em]hdr.north west)
-                        node[draw=none,text=gray,left,xshift=-0.6em] {\texttt{frame->buff}};
-
-                \draw [->,gray!80,thick] ([xshift=-1.4em]inhdr.north west)  -- ([xshift=-0.6em]inhdr.north west)
-                        node[draw=none,text=gray,left,xshift=-0.6em] {\texttt{frame->head}};
-
-                \draw [->,gray!80,thick] ([xshift=-1.4em]indata.north west)  -- ([xshift=-0.6em]indata.north west)
-                        node[draw=none,text=gray,left,xshift=-0.6em] {\texttt{frame->data}};
-
-                \draw [->,gray!80,thick] ([xshift=-1.4em]extra.north west)  -- ([xshift=-0.6em]extra.north west)
-                        node[draw=none,text=gray,left,xshift=-0.6em] {\texttt{frame->tail}};
-            \end{tikzpicture}
-        \end{center}
-        \caption{Nested protocol frame breakdown}\label{fig:frame-breakdown-2}
-    \end{figure}
-
-    Nesting can often occur multiple times, depending on the protocol construction. The same operations are applied again, moving both the head and data pointers into the data section.
-
-    Frames store other crucial information such as the interface it was received from/is due to be sent to and a transmission timestamp for logging and analysis purposes. For supported internet protocols that rely upon sockets, metadata of each observed header within the frame is stored. At the cost of a small amount of extra memory, lookups of outer packet headers can be performed as a simple list traversal. Internet socket addresses and ports are also stored within the frame if the protocols provide such information. It is used in places such as \gls{TCP} responses to invalid connections where a valid socket may not exist. Finally, concurrency and locking information is also stored within the frame to ensure consistency across threads and prevent memory errors and leaks.
+    \todo{explain what a `frame' is an how it works}
 
     \section{Header Manipulation}
-    One of the many advantages of using a low-level systems programming language like C is the ability to manipulate memory in very efficient ways. One primary example of how this was used is by treating raw blocks of memory as various packet headers. With zero overhead, C allows reading bytes directly out of a network interface and casting the data into the required struct without needing to perfom a copy. As a bonus, it simplifies concurrent use of the packet data due to it being immediately available and requiring no parsing or processing.
+    One of the many advantages of using a low-level systems programming language like C is the ability to manipulate memory in very efficient ways. One primary example of how this was used is by treating raw blocks of memory as various packet headers. With zero overhead, C allows reading bytes directly out of a network interface and casting the data into the required struct without needing to copy any values. As a bonus, it simplifies concurrent use of the packet data due to it being immediately available and requiring no parsing or processing.
 
     A good example of this is checking for 802.1Q VLAN tags in ethernet frames. Initially the packet is taken as a \texttt{struct eth\_hdr} and the \texttt{ethertype} field is checked:- this defines the type of data stored within the packet. When the ethertype holds the value \texttt{0x08100}, the header should be interpreted differently as it has two extra fields totalling 4 extra bytes over the standard \texttt{struct eth\_hdr}.% chktex 29
     \begin{figure}[H]
@@ -254,21 +181,23 @@
     \end{figure}
 
     \section{Internet Protocol}
-    IP is a relatively simple protocol, compared with \gls{TCP}, primarily it provides addressing and routing of packets, as well as some other features that aren't too relevant in the scope of this project (see Section~\ref{sec:intro-ip}).
+    IP is a relatively simple protocol, compared with TCP, primarily it provides addressing and routing of packets, as well as some other features that aren't too relevant in the scope of this project (see Section~\ref{sec:intro-ip}).
 
-    Incoming packets containing IP payloads are first validated for corruption against their checksum alongside other sanity checks and invalid packets are discarded. The destination address on the packets is then compared with the list of defined interface addresses and is only passed for further processing if the destination matches a local interface address or is a broadcast address. Broadcast packets, with destination 255.255.255.255 or the subnet broadcast address, are used by many applications, for example DHCP\@.
+    Incoming packets containing IP payloads are first validated for corruption against their checksum alongside other sanity checks and invalid packets are discarded. The destination address on the packets is then compared with the list of defined interface addresses and is only passed for further processing if the destination matches a local interface address or is a broadcast address. Broadcast packets, with destination 255.255.255.255 or the net broadcast address, are used by many applications, for example DHCP\@.
 
-    Sending packets out, in response, is not as simple as adding the desired destination address and sending it. First a `route' to the destination host must be established so the packet is sent to a device that can pass it on.
+    Sending packets out, in response, isn't as simple as adding the desired destination address and sending it. First a `route' to the destination host must be established so the packet is sent to a device that can pass it on.
 
-    \section[Address Resolution Protocol]{Address Resolution Protocol (ARP)}
+        \subsection{Routing}
+
+    \section{Address Resolution Protocol}
     In reality, IP packets cannot be magically `sent to their destination', instead the \textit{link layer} has to be informed to where it is sending the packet. To bridge this gap, ARP is used to resolve the hardware address belonging to the desired protocol address. In most cases ARP is used to identify the ethernet address of a given IPv4 address.
 
     % required to map ip addresses to hardware addresses
     Within the `neighbour' system, ARP is used for this hardware address lookup as packets are sent. In the first implementation, any sent packet requested the hardware address for the destination from the ARP cache and dispatched the packet to the interface itself. If the was a \textit{cache miss} then the outgoing packet would be dropped immediately and an ARP request for the required protocol address would be sent out instead.
 
     % async behaviour
-    During the implementation of \gls{TCP} handshakes, before any retransmissions were implemented, it became apparent that this was not sufficient as the initial SYN packet was often dropped, causing the connection from never actually being established.
-    The improved replacement implementation handles ARP lookups and caching asynchronously. When a packet is passed to the `neighbour' system, an ARP lookup is performed as before. Provided fulfilment of the requested address, the packets is sent as normal. When a \textit{cache miss} occurs, an ARP request for the missing lookup is sent. Depending on the subsystem that tried to send the packet, one of two actions is performed:
+    During the implementation of TCP handshakes, before any retransmissions were implemented, it became apparent that this was not sufficient as the initial SYN packet was often dropped, causing the connection from never actually being established.
+    The improved replacement implementation handles ARP lookups and caching asynchronously. When a packet is passed to the `neighbour' system, an ARP lookup is performed as before. Provided fulfillment of the requested address, the packets is sent as normal. When a \textit{cache miss} occurs, an ARP request for the missing lookup is sent. Depending on the subsystem that tried to send the packet, one of two actions is performed:
     \begin{itemize}[noitemsep]
         \item{the thread is suspended awaiting the reply message, at which point the packet is sent.}
         \item{the packet is pushed into a queue to be later processed when the reply arrives.}
@@ -277,9 +206,9 @@
 
     % talk about the inet_sock struct, what it is and how it works
     \section{Sockets}
-    There are many definitions of the term `socket'. One particular implementation of a socket used in this project is the \texttt{struct inet\_sock} which represents an internet `connection', whether that be an actually \gls{TCP} connection or just a single packet exchange.
+    There are many definitions of the term `socket'. One particular implementation of a socket used in this project is the \texttt{struct inet\_sock} which represents an internet `connection', whether that be an actually TCP connection or just a single packet exchange.
 
-    This structure is crucial to identifying connections and packets belonging to the Internet Suite of protocols, primarily \gls{TCP} and UDP\@. It holds source and destination IP addresses and the accompanying 16 bit \textit{port} values used by the protocols and most importantly the socket type, defined portably in \texttt{<sys/socket.h>}. The type value is important as it defines the protocol and therefore dictates what information is available in the struct.
+    This structure is crucial to identifying connections and packets belonging to the Internet Suite of protocols, primarily TCP and UDP\@. It holds source and destination IP addresses and the accompanying 16 bit \textit{port} values used by the protocols and most importantly the socket type, defined portably in \texttt{<sys/socket.h>}. The type value is important as it defines the protocol and therefore dictates what information is available in the struct.
 
     \begin{figure}[H]
         \begin{center}
@@ -324,19 +253,18 @@
 
     Using this structure to generalise socket types is helpful as it allows all internet socket types to be grouped and handled together. It simplifies socket lookups for incoming packets as regardless of the protocol, the socket can always be compared for address and port values without needing any protocol-specific lookup.
 
-    \section{Transmission Control Protocol}
-    Using Linux as an existing \gls{TCP} implementation to produce packets, the first task was to accept valid \gls{TCP} packets and process them. It was easiest to use incoming \texttt{SYN} packets and build a connection passively with a known good peer.
-
-    After successfully parsing \gls{TCP} packet headers, connections could start to be formed. Incoming segment processing is handled by the \Gls{segment} Arrives portion of the TCP specification.
+    \section{TCP}
+    %Whilst implementing TCP is a major component in the specification of this project, it took until over half-way through the main programming phase to actually start implementing TCP features. TCP requires a large underlying framework that is IP and its counterparts to function at all.
+    Using Linux as an existing TCP implementation as a head-start, the first task was to accept valid TCP packets and process them. It was easiest to use incoming \texttt{SYN} packets and build a connection passively with a known good peer.
 
         \subsection{\Gls{segment} Arrives}
-        Much of the information provided in RFC 793~\cite{rfc793} is background information about the basic operation of the protocol. The rest of the document details how incoming \glspl{segment} should be handled in the `\Gls{segment} Arrives' section. From this it is trivial to implement processes to establish and tear-down \gls{TCP} connections, ignoring the transmission of any data payloads.
+        Much of the information provided in RFC 793~\cite{rfc793} is background information about the basic operation of the protocol. The rest of the document details how incoming \glspl{segment} should be handled in the `\Gls{segment} Arrives' section. From this it is trivial to implement processes to establish and tear-down TCP connections, ignoring the transmission of any data payloads.
 
-        As \gls{TCP} packets arrive into the stack, the first stage is `demultiplexing', discussed in some detail in Section~\ref{sec:demultiplex}, comparing the two address/port pairs to the list of existing connections. Handling this lookup for existing connections is trivial by choosing the matching connection from the list. SYN packets indicating a new connection request, out-of-band packets such as those delayed from earlier closed connections and other unexpected packets have to be treated a little differently.
+        As TCP packets arrive into the stack, the first stage is `demultiplexing', discussed in some detail in Section~\ref{sec:demultiplex}, comparing the two address/port pairs to the list of existing connections. Handling this lookup for existing connections is trivial by choosing the matching connection from the list. SYN packets indicating a new connection request, out-of-band packets such as those delayed from earlier closed connections and other unexpected packets have to be treated a little differently.
 
-        The function \texttt{tcp\_seg\_arr} handles incoming \glspl{segment} and it expects the incoming \gls{segment} as well as the socket that the \gls{segment} belongs to, as arguments. To ensure the code is clean, maintainable and as flexible as possible, the \gls{TCP} system does not know about IP addresses, instead it is abstracted out and relies on the underlying protocols to handle addressing. Unexpected incoming packets such as those previously mentioned have no existing socket so one must be allocated before passing it into \gls{TCP} to handle the unknown connection. In some cases the newly allocated socket structure will be immediately deallocated after a reply packet is sent out, for example when sending \texttt{RST} packets for invalid connections or closed ports.
+        The function \texttt{tcp\_seg\_arr} handles incoming \glspl{segment} and it expects the incoming \gls{segment} as well as the socket that the \gls{segment} belongs to, as arguments. To ensure the code is clean, maintainable and as flexible as possible, the TCP system does not know about IP addresses, instead it is abstracted out and relies on the underlying protocols to handle addressing. Unexpected incoming packets such as those previously mentioned have no existing socket so one must be allocated before passing it into TCP to handle the unknown connection. In some cases the newly allocated socket structure will be immediately deallocated after a reply packet is sent out, for example when sending \texttt{RST} packets for invalid connections or closed ports.
 
-        Valid \glspl{segment} that arrive from established connections and carrying data, whether \textit{in-order} or not, are pushed in their entirety into the \textit{receive queue} in sequence order. Only \textit{in-order} \glspl{segment} will trigger transmission of \texttt{ACK} packets in response to receiving data. Out of order \glspl{segment} will still be retained for the future occasion where the missing data fills the gap in the sequence space, constructing one contiguous stream of data from the next sequence value expected to be received: \texttt{RCV.NXT}\@.
+        Valid \glspl{segment} that arrive from established connections and carrying data, whether \textit{in-order} or not, are pushed in their entirety into the \textit{receive queue} in sequence order. Only \textit{in-order} \glspl{segment} will trigger transmission of \texttt{ACK} packets in response to receiving data. Out of order \glspl{segment} will still be retained for the future occasion where the missing data fills the gap in the sequence space, constructing one contiguous stream of data from \texttt{RCV.NXT}\@.
 
         Acknowledgement packets that are sent out calculate the \texttt{ACK} value from the largest contiguous \gls{segment} from \texttt{RCV.NXT}. \Glspl{segment} are checked sequentially, ensuring they are contiguous and ignoring any overlap. The point at which a gap is found in the sequence numbers, the successive sequence number of the last contiguous \gls{segment} in the queue is used as the acknowledgement number.
 
@@ -375,21 +303,18 @@
         Green boxes represent a \gls{segment} in the receive queue. Red boxes represent gaps in the sequence space. This demonstrates an idealised situation where \gls{segment} 550 arrives out-of-order resulting in a shortened contiguous sequence from bytes 250 to 499 inclusive, and an acknowledgement for 500 being sent. When the \gls{segment}(s) arrive to fill the missing bytes 500-549, an \texttt{ACK} for at least 550 would be sent. % chktex 8 chktex 36
 
         %\subsection{Retransmission}
-        %%Retransmissions occurs for most sent \glspl{segment} in \gls{TCP}, with the exception of \texttt{ACK} packets that carry no data.
-        %Each and every \gls{segment} that passes out of the \gls{TCP} layer, either containing data or control flags, is queued for retransmission. The exception to this is \texttt{ACK} packets that carry no data as there is no response to mark them as `received'. As well as pushing the \gls{segment} into the queue, the retransmission
+        %%Retransmissions occurs for most sent \glspl{segment} in TCP, with the exception of \texttt{ACK} packets that carry no data.
+        %Each and every \gls{segment} that passes out of the TCP layer, either containing data or control flags, is queued for retransmission. The exception to this is \texttt{ACK} packets that carry no data as there is no response to mark them as `received'. As well as pushing the \gls{segment} into the queue, the retransmission
 
         \subsection{Concurrency}
         % mostly in user functions
-        Processing incoming TCP segments is for the most part a sequential operation, if timers are ignored. Where much of the explicit concurrent processing comes from as part of \gls{TCP} is user process intervention. Most user functions rely somewhat on asynchronous events. Each \gls{TCP} socket object has a global socket lock for restricting concurrent modification. This is most useful in the cases of contention during elapsed timer callbacks and segments arriving during other asynchronous tasks such as timer events or user events.
-
         % waiting for things to happen such as connect, reply ACK, etc
         % consists of pthread_cond
-        Many of the \texttt{tcp\_user\_*} functions perform extra asynchronous tasks, such as waiting for a particular change in the socket state. In these cases, pthread condition variables are used to atomically unlock and wait for events to happen. One example of awaiting an event is send window congestion in the \texttt{tcp\_user\_send} function before an ACK packet arrives, freeing space in the send window and allowing more data to be sent. These operations use the pthread \gls{API} to unlock the socket mutex and atomically suspend the thread, until it is woken at a later point by another thread. Freeing the mutex allows another thread to contend for ownership and continue processing after the waiting thread has released it, ensuring no races can happen and therefore no deadlocks.
 
     \section{Socket API}
-        \subsection{Netstack \gls{API}}
-        % \gls{TCP} user functions join together the internal tcp calls and perform error checking.
-        Providing a pseudo-\gls{API} is the \texttt{tcp\_user\_*} suite of functions. These loosely follow the \textit{User Calls} defined in RFC 793~\cite{rfc793}, presenting the internal \gls{TCP} state as a usable stream interface. Much of the error and sanity checking is performed within these functions, ensuring only legal operations are made by user process code.
+        \subsection{Netstack API}
+        % TCP user functions join together the internal tcp calls and perform error checking.
+        Providing a pseudo-API is the \texttt{tcp\_user\_*} suite of functions. These loosely follow the \textit{User Calls} defined in RFC 793~\cite{rfc793}, presenting the internal TCP state as a usable stream interface. Much of the error and sanity checking is performed within these functions, ensuring only legal operations are made by user process code.
 
         % Perform sufficient locking to prevent concurrent modification of the state whilst it's being read
         One important consideration with user-facing code is preventing concurrent modification.  The likelihood of a \gls{segment} arriving during the operation of a user call is quite high thus it is critical that sufficient locking is performed to prevent inconsistencies in the state allowing data to be lost or the connection state becoming invalid.
@@ -398,7 +323,7 @@
             % Calls tcp_send_data
             In the simplest form, \texttt{tcp\_user\_send} \glspl{segment} and the provided data and sends it in the fewest possible packets. All sent data is also pushed into the send retransmission buffer in the case that packets are lost and it is needed for retransmission.
 
-            \texttt{tcp\_send\_data} is the function responsible for handling construction and transmission of data \glspl{segment}. Given a sequence number, as much data as is available will be added to the packet. Before data is copied into the payload section of the packet, header options are calculated and appended to the \gls{TCP} header. Utilising the information from the socket about the lower layers and the size of \gls{TCP} options, the \textit{maximum \gls{segment} size} is calculated to ensure a saturated packet, provided enough data is available in the send buffer.
+            \texttt{tcp\_send\_data} is the function responsible for handling construction and transmission of data \glspl{segment}. Given a sequence number, as much data as is available will be added to the packet. Before data is copied into the payload section of the packet, header options are calculated and appended to the TCP header. Utilising the information from the socket about the lower layers and the size of TCP options, the \textit{maximum \gls{segment} size} is calculated to ensure a saturated packet, provided enough data is available in the send buffer.
 
             % Waits for space in send window
             Additionally, as to not overwhelm the receiver, a check is made before each \gls{segment} is sent to ensure there is sufficient space in the remote receive window. In low-latency connections with unscaled receive buffers, it is a common occurrence that the total size of unacknowledged packets reaches or exceeds the amount of available space the receiver has to buffer the packets. When the available space hits 0, sending is suspended indefinitely until an acknowledgement arrives, freeing up space in the send buffer. Non-blocking sockets return immediately, instead of waiting, with the error value \texttt{O\_NONBLOCK}.
@@ -410,10 +335,12 @@
             % Waits for incoming \glspl{segment}
             \texttt{tcp\_user\_recv} is also a blocking function call and will wait when there is no contiguous data to receive or the receive queue is empty, similarly to \texttt{tcp\_user\_send}. When a data \gls{segment} arrives, it is pushed into the receive queue then the recv call is woken so that it can attempt to read and return more data to the user.
 
-        \subsection{BSD Socket API}
-        Integration with existing programs requires a common interface between the two; applications written for Unix systems use the \gls{BSD} socket \gls{API}\@.
+        \todo{Maybe talk about some other tcp\_user\_* functions if there is time}
 
-        Provided is a wrapper around the internal subsystems to emulate the operation of the \gls{BSD} \gls{API}\@. Implementations of the following functions exist, providing access to just the \gls{TCP} subsystem at current, with other calls defaulting to the standard system function calls.
+        \subsection{BSD Socket API}
+        Integration with existing programs requires a common interface between the two; applications written for Unix systems use the BSD socket API\@.
+
+        Provided is a wrapper around the internal subsystems to emulate the operation of the BSD API\@. Implementations of the following functions exist, providing access to just the TCP subsystem at current, with other calls defaulting to the standard system function calls.
         {\setlength\multicolsep{0pt}%
         \begin{center}
             \begin{minipage}{0.9\columnwidth}
@@ -433,12 +360,12 @@
         \end{center}
         \smallskip}
 
-        % explain how \gls{BSD} \gls{API} functions are implemented
+        % explain how BSD API functions are implemented
         Sockets and files alike are identified by their `file descriptor', a non-negative integer value, assigned by the kernel when the socket or file is opened. The \texttt{socket} function allocates socket resources and assigns a file descriptor for the user to refer to the socket.
         File descriptors are ``guaranteed to be the lowest unused file descriptor value'' when chosen by the kernel. There is no functionality to reserve arbitrary file descriptor values from the kernel so chosen values must not overlap those used by the kernel.
 
         Chosen arbitrarily, file descriptors for netstack start at \texttt{UINT16\_MAX} ($16,384$) and count upwards, to leave both enough space for both kernel-assigned and netstack-assigned values. This distinguished separation of file descriptor values ensures netstack and kernel files/sockets can be separated.
-        File descriptors are used directly as array indices, offset from the start value, for the socket structures ensuring low-overhead socket lookup for each \gls{API} call.
+        File descriptors are used directly as array indices, offset from the start value, for the socket structures ensuring low-overhead socket lookup for each API call.
 
         % getsockopt, setsockopt, fcntl implemented but do nothing
         Implementations of various other functions which can perform operations on sockets such as \texttt{getsockopt}, \texttt{setsockopt} and \texttt{fcntl} are also handled but do nothing and return errors. These are provided for compatibility with some programs that utilise but do not rely on them, such as \texttt{curl}.
@@ -446,7 +373,7 @@
         % O_NONBLOCK isn't working
         Most of these functions currently only provide basic functionality and do not correctly handle extra modes of operation such as \texttt{O\_NONBLOCK}.
 
-        Many applications that utilise this \gls{API} leverage the power of \texttt{poll}, \texttt{epoll} and \texttt{select} for multiplexing I/O and socket operations within a single thread. Whilst handled, these functions do not operate as per the specification and simply return immediately.
+        Many applications that utilise this API leverage the power of \texttt{poll}, \texttt{epoll} and \texttt{select} for multiplexing I/O and socket operations within a single thread. Whilst handled, these functions do not operate as per the specification and simply return immediately.
 
     \section{Library Injection}
     Paired with \texttt{libnshook}, \texttt{libnetstack} can be made useful when injected into an existing program at runtime. Linux dynamic executables rely on \texttt{ld}, the \textit{loader} (not to be confused with \texttt{ld} the \textit{linker}) to locate and link together all of the required functions at runtime. One feature of the linker is the ability to preload libraries, overriding any symbols that would normally be loaded first, such as those in libc. libnetstack takes advantage of this feature to overload the default socket functions. % chktex 12
@@ -460,12 +387,15 @@
     \end{center}
 
     \section{Standalone Library}
-    In some cases, the programmer may want to explicitly link against \texttt{netstack} instead of relying on \texttt{LD\_PRELOAD} or similar temporary hacks. The overriden \gls{BSD} socket \gls{API} is still provided as well as the protocol-specific netstack \gls{API}s, in the form \texttt{tcp\_user\_*}, for example.
+    \todo{talk about netstack\_init() and netstack\_cleanup()} % chktex 36
 
-    When linking manually, it is important to initialise the network stack before attempting to perform any network operations as the process will likely crash. The functions \texttt{netstack\_init} and \texttt{netstack\_cleanup} are provided for convenience to allocate the required memory and initialise network stack values.
+        % netstack_init()
+        % netstack_cleanup()
+        %
 
     \section{Memory Management}
     One major advantage given to the programmer when using a simple language like C is very low level access to memory management, as a downside to the great flexibility the application must carefully track and deallocate every dynamic memory allocation to prevent memory leaks and use-after-free errors. This is especially important in long-lived applications such as those running in the background as system daemons as leaked memory will accumulate over time and eventually lock up the system. Shorter-lived processes aren't as concerned about this as the kernel will clean-up any unaccounted memory and file descriptors when the process exits.
+        % struct intf
 
     There are numerous ways to manage memory in an application with one of the simplest, from the perspective of a programmer, is with a \emph{garbage collector} which polls for unreferenced memory and deallocates it, on a timer or when the application is idle. There are \emph{many} drawbacks to this approach however, primarily that there is no implementation of one in C.
 
@@ -496,7 +426,7 @@
         \smallskip
     }
 
-    Every log entry has an associated `level' or severity associated. When the logs are being outputted into a terminal, appropriate colours are applied to the entries, highlighting the severity. This makes spotting more severe errors much easier.
+    Every log entry has an associated `level' or severity associated. When the logs are being outputted into a terminal, appropriate colours are applied to the entries, highlighting the severity. This makes spotting more severe errors much easier as they scroll past.
 
     Each source file defines a `log unit' string which prepends every log message with a hint of where the message came from, even in the case that the debug logging containing the line number and file extension is disabled.
 
@@ -505,7 +435,7 @@
     \vspace{\parskip}
     \begin{center}
         \begin{minipage}{0.86\columnwidth}
-            \texttt{\footnotesize 11:08:50.489286 [netd] [\textcolor{gray}{TRACE}] \textcolor{gray}{(\gls{TCP}) queuing \gls{segment} 27215: lib/tcp/output.c:233<tcp\_queue\_unacked>}}
+            \texttt{\footnotesize 11:08:50.489286 [netd] [\textcolor{gray}{TRACE}] \textcolor{gray}{(TCP) queuing \gls{segment} 27215: lib/tcp/output.c:233<tcp\_queue\_unacked>}}
         \end{minipage}
     \end{center}
     \vspace{\parskip}
@@ -515,37 +445,22 @@
         \texttt{\footnotesize \textcolor{darkgray}{\textcolor{teal}{LOG}(LTRCE, \textcolor{ForestGreen}{"queuing \gls{segment} \textcolor{cyan}{\%u}"}, seq);}} % chktex 18 chktex 36
     \end{center}
 
-    Internally the logger uses \texttt{printf} and its variants to format strings with varadic arguments, allowing quick construction of messages with various data types. In the example above the `log unit' of ``\texttt{(\gls{TCP})}'' is prepended to the message automatically based on the source file it was defined in. Additional macros have also been defined to perform the operation of \texttt{perror} and similar functions through the logging system to keep code clean and readable.
+    Internally the logger uses \texttt{printf} and its variants to format strings with varadic arguments, allowing quick construction of messages with various data types. In the example above the `log unit' of ``\texttt{(TCP)}'' is prepended to the message automatically based on the source file it was defined in. Additional macros have also been defined to perform the operation of \texttt{perror} and similar functions through the logging system to keep code clean and readable.
 
     \section{Issues}
         \subsection{Standards}
         % RFC 793 is incomplete and very vague
-        Many of the semantics of edge-case events in \gls{TCP} are poorly documented or absent from the original specification~\cite{rfc793}. Many of the behaviours that is expected from \gls{TCP} implementations are simply not documented due to them evolving in-situ without proper protocol for evaluation. Whilst no two \gls{TCP} implementations are created the same, many share features and semantics taken from the source code of previous implementations. It seems that the only truly `original' open-source implementation is the original \gls{BSD} stack from which most modern leading operating systems are based.
+        Many of the semantics of edge-case events in TCP are poorly documented or absent from the original specification~\cite{rfc793}. Many of the behaviours that is expected from TCP implementations are simply not documented due to them evolving in-situ without proper protocol for evaluation. Whilst no two TCP implementations are created the same, many share features and semantics taken from the source code of previous implementations. It seems that the only truly `original' open-source implementation is the original \todo{why BSD here first} Berkeley Unix (BSD) stack from which most modern leading operating systems are based.
 
-        Some later RFC documents contain updated details as well as some improvements and amendments on protocol semantics, such as those defined in RFC 1122 for \gls{TCP} as well as other protocols that make up the Internet Suite.
+        Some later RFC documents contain updated details as well as some improvements and amendments on protocol semantics, such as those defined in RFC 1122 for TCP as well as other protocols that make up the Internet Suite.
 
         The standard procedure taken for attempting to overcome these omissions was either through trial and error or by referencing the well-tested Linux source code.
 
-        \subsection{Memory Management}
-        A significant amount of time throughout various points in the project was spent debugging bugs, errors and crashes all relating to management of memory shared across multiple threads. One common occurrence was the use of shared memory being deallocated whilst another thread held a pointer to it. These `use after free' errors caused many crashes and wasted a lot of time trying to debug specific locations in code, only to be broken again by a later change.
-
-        % refcount
-        Several weeks were spent trying to settle on a memory management technique that worked in all cases and prevented any memory errors. After much experimentation, the concept of a `reference count' was discovered and implemented as an abstract structure, later to be inlined across most data structures for cleaner code.
-
         \subsection{Threading \& Locking}
-        Throughout the implementation of ARP and TCP subsystems, many issues arose related to locking. Sometimes locks would not be held when they were required to, other times they were held and then locked again, causing deadlocks. Often the problem was solved with the use of DRD for identifying the incorrect code (see Section~\ref{sec:perf-bug-testing}).
-
-        One particular issue that repeatedly appeared was the case where a thread held a mutex and then attempted to re-lock the same mutex in another nested function call. Ideally critical sections of code should be short and not contain multiple function calls but in some circumstances it is required to maintain a consistent and valid state. A solution is to use the non-portable `recursive' style mutexes that allow re-locking already held locks however that method is less than ideal mostly because it breaks portability. In most cases, a resolution was found by refactoring the code to where locks could not be recursively held.
+        % refcount
         % pthread_cond
         % arp request waiting on recv thread
 
-        \subsection{Multiplexed I/O}
-        One of the primary goals for this project was to be able to intercept and override the networking in \texttt{curl}. In a broad sense this has been achieved, however the one missing feature preventing this, and many other standard Unix utilities, from working properly is the multiplexing functionality provided by the \texttt{poll} and \texttt{select} functions (and variations). The asynchronous nature of these routines would require a large refactor and redesign of how signalling is handled within the TCP subsystem. Most performant implementations of these functions would rely upon event-based signalling to inform the waiting thread, perhaps despite the function names.
-
-        A na\"ive implementation of \texttt{poll}/\texttt{select} would use busy polling to check for socket changes on a regular inteval. Whilst this approach would work and could potentially provide acceptable performace without too much wasted computation, it is far from ideal.
-        A proposal for a more performant implementation requries that sockets push out events to the polling thread, after being subscribed by the poll call. Subscribing events to multiple file descriptors could potentially be a location for bottlenecking however it is better than the more primitive alternative.
-
-        Much deliberation was had over this issue, about potential implementation shortcuts and modifications to allow interworking with the existing code but instead it was left out as possible future work instead.
-        % \gls{BSD} socket \gls{API} design
+        % BSD socket API design
         % non-blocking I/O (poll/select) :(
 

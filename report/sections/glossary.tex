@@ -1,0 +1,20 @@
+%! TEX root = ../report.tex
+
+\usepackage{xparse}
+\DeclareDocumentCommand{\newdualentry}{ O{} O{} m m m } {
+    \longnewglossaryentry{gls-#3}{name={\MakeLowercase{#4}},text={#3},#1}{#5}
+    \makeglossaries{}
+    \newglossaryentry{#3}{type=\acronymtype, name={#3}, description={#4}, first={#4 (#3)\glsadd{gls-#3}}, see=[Glossary:]{gls-#3}}
+}
+
+\newdualentry{API}{Application Programming Interface}{a standard set of functions/routines that perform documented actions on a specified system}
+\newdualentry{BSD}{Berkeley Software Distribution}{a unix operating system derivative developed at University of California, Berkeley in the late 1970s}
+\newdualentry{TCP}{Transmission Control Protocol}{a network stream protocol providing reliable, ordered, and basic integrity guarantees, part of the Internet Suite}
+\newdualentry{MTU}{Maximum Transmission Unit}{the largest amount of data that can be sent in one ethernet frame}
+
+\longnewglossaryentry{simplex}{name=simplex}{uni-directional communication}
+\longnewglossaryentry{segment}{name=segment}{one packet in a TCP packet stream often containing data}
+
+% Add all glossary items regardless of usage
+\glsaddall{}
+

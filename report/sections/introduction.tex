@@ -1,15 +1,23 @@
 %! TEX root=../report.tex
 
-\chapter{Introduction}
+\chapter{Introduction}\label{chp:intro}
 % Describe the problem to be solved
+The primary objective of this project is to construct a portable TCP/IP implementation running in userland with no reliance on kernel networking. Network operations in most modern operating systems are passed down to the \textit{kernel} for processing, to maximise performance.
 
-    \section{Background}
     % Explain enough background to understand the problem
-
     % Clearly state project aims
-    % Provide an overview of structure of solution?
-    % Explain what is in each section of this document
+    \section{Aims}\label{sec:aims}
+    Learning about the inner workings of TCP, IP and other protocols with the black-box approach using the kernel implementations is difficult. Producing modifications to interwork with existing code requires compilation of some or all of the kernel in order to be applied, impeding productivity. Many of these drawbacks can be overcome by moving the networking code up into userspace. Requiring only a single passage to transfer complete ethernet packets back and forth to the physical network interface, a network software utility can be entirely self-sufficient and thus much more manageable.
 
-    \input{sections/ip-overview.tex}
-    \input{sections/tcp-overview.tex}
+    Providing a software library to perform network protocol operations opens up many opportunities for further research into userland adaptations of existing protocols or prototyping new protocols with greater ease. Access to the inner workings of protocols has potential to allow for new types of network packet inspection or injection, for example a \textit{virtual private network} tunnelling implementation that relies solely on packet-level access for data injection.
+
+    As a learning tool it is important that it performs correctly, as per the specification, and is performant enough to be useful. Many implementations are littered with additional functionality for legacy systems or rarely-used features that lessen the overall learning experience. Code should be well commented and readable whilst still not sacrificing performance.
+
+    \section{Structure}
+    % Provide an overview of structure of solution?
+    Making up the whole solution to this project are multiple modular components that when combined can be used in many different ways, for example some of the provided use cases in Section~\ref{sec:aims}.
+    Most importantly is the network stack implementation which provides an end-to-end process for handling TCP, IP and other protocols. The network stack is comprised of many layers, as discussed in-depth in Chapter~\ref{chp:design}. To integrate seamlessly with existing software, \texttt{libnshook} and \texttt{libnetstack} can be used to replace the default networking in Unix application binaries.
+
+    % Explain what is in each section of this document
+    In Chapter~\ref{chp:spec} the project goals are formalised into requirements. Chapter~\ref{chp:background} overviews the history and operation of TCP and IP protocols. Discussion of other works, relating to the topic of this project are covered in Chapter~\ref{chp:related}. Detailed information about how the project was designed and implemented are covered in Chapters~\ref{chp:design}~\&~\ref{chp:impl}. An overview of the testing tools and strategies used is in Chapter~\ref{chp:testing}. The project outcomes and experiences are summarised and evaluated in Chapter~\ref{chp:eval}.
 

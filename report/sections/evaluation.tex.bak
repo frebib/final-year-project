@@ -1,29 +1,25 @@
 %! TEX root = ../report.tex
 
-\chapter{Evaluation}\label{chp:eval}
+\chapter{Evaluation} % Discussion
 % how it went
 
-    \section{TCP Performance}
-    As demonstrated in the test performed in Section~\ref{sec:test-working-example}, a sustained average throughput of around 300 megabits/second can be achieved given the correct circumstances. The results of this test are actually more impressive than the metrics can show. Every packet transferred in that communication was either sent or received through a \texttt{raw socket} interface which places a large overhead when accumulated over the entire length of the connection. Had an interface type with a lower overhead such as tpacket or similar been used a significant amount of context-switching time would have been saved. The default maximum TCP window size of 64K was used as no scaling is implemented; a significant portion of the time on the sender wait spent waiting for acknowledgement packets to return to free up space in the window and allow more data to be sent. There was no implementation of send or receive offloading to coalesce multiple packets into one which can provide a significant improvement in throughput. No optimisations were made in regards to branching or in order of operations.
+\todo{evaluate choice of language}
 
-    Despite all of these improvements that could have improved throughput by a factor of several times, the performance is still what can be considered `more than acceptable'. Aside from raw throughput, the TCP implementation seemed to behave correctly in almost every test. In every case, data transmission was lossless and would always eventually arrive in full, in the correct order.
-
-    \vfil
     \section{Resolved Issues}
     % refer to journal section 5
         \subsection{Fighting Kernel TCP Reset}
         During the initial design phase of this project there was speculation that there would be a conflict between the internal kernel TCP stack and the unsolicited userland stack, each sending \texttt{RST} packets in reply to valid connections of the other stack, due to being unaware of the existence of the foreign connections. In practice, this issue is still of concern, but only in the certain circumstance where the userland TCP stack uses the same hardware and internet addresses as the host systems, in which case the packets would be validly addressed to both protocol stacks.
 
         The simple solution is to use different address values to prevent conflicts which mitigates any conflicts completely. There are valid use cases where both stacks would need to use the same addresses, in which case functionality would need to be added to prevent the double replies to every incoming packet.
-
+        
     % how it could be improved
     \section{Improvements}\label{sec:improvements}
-    The scope of this project was small and focused given the wide field of options for topics of research. Only a small subset of the desired features made it in to the final implementation leaving large areas wide open for improvements and extension. There are many extra features that would benefit the operation and overall performance of this tool, both in the higher protocols and in the lower packet processing. This section overviews some of those more prolific features.
+    The scope of this project was small and focussed given the wide field of options for topics of research. Only a small subset of the desired features made it in to the final implementation leaving large areas wide open for improvements and extension. There are many extra features that would benefit the operation and overall performance of this tool, both in the higher protocols and in the lower packet processing. This section overviews some of those more prolific features.
 
         \subsection{Handling `Generic Receive Offload' (GRO)}
         In an effort to combat high-throughput network devices, such as those that operate at 10Gbps or higher, optimisations such as GRO have been developed to improve throughput and reduce latency. At high packet volumes, processing the segment header for every packet becomes a bottleneck, so packet payloads are concatenated in certain circumstances to reduce the overhead.
 
-        Segments that are not modified by GRO cause no issue however those that are changed can contain an invalid checksum causing the packets to be dropped. When processing the packet there is no indication that it has been modified, making detection of modified payload unreliable at best.
+        Segments that are not modified by GRO cause no issue however those that are changed can contain an invalid checksum causing the packets to be dropped. When processing the packet there is no indication that it has been modified, making detection of modified payload unreliable at best. 
 
         There are a couple of valid mitigations for this issue, the easiest being to disable GRO outright. This completely solves the issue however isn't ideal from a performance perspective.
         It could be assumed that when GRO is enabled, by checking with the kernel, that all packets coming in had valid checksums and software checksumming should be disabled. Depending on the operation of GRO and how invalid checksummed packets are handled, this could be a valid strategy.
@@ -41,9 +37,9 @@
 
         % parameterised ip/route specification
         \subsection{Addressing Configuration}
-        Hard-coding addressing information such as ethernet addresses, IP addresses, routing information etc.\ is not the easiest to deal with for production software. All of the configurable information should be loaded from external data source and configured at runtime.
+        Hard-coding addressing information such as ethernet addresses, IP addresses, routing information etc.\ is sloppy and unrealistic for production software. All of the configurable information should be loaded from external data source and configured at runtime.
 
-        The simplest method for loading configuration for a static program such as running as a system daemon is through a configuration file. An lxample configuration schema is defined in Appendix~\ref{apx:config-schema} outlining some of the configurable values that would be desired in production software.
+        The simplest method for loading configuration for a static program such as running as a system daemon is through a configuration file. An example configuration schema is defined in Appendix~\ref{apx:config-schema} outlining some of the configurable values that would be desired in production software.
 
         For the use case of an injected network stack, configuration should be implicitly specified or be pre-configured elsewhere. Static configuration files, either system-wide or local to the user are the simplest option for this use case but still require manual user intervention.
 
@@ -55,7 +51,7 @@
 
         The current queuing architecture only stores data segments and therefore never re-processes control segments as they become in-order. A proposed modification is to move the segment reordering into \texttt{tcp\_seg\_arr}, after incoming segments are processed, after which queued segments can be optionally re-processed if required.
 
-        As an added bonus, the \texttt{tcp\_user\_recv} function would be significantly simpler, reducing lock contention as fewer checks would be required to consume the required amount of data from the receive queue. Pre-computation of the required blocks can be performed in one step instead of iteratively, per segment, with extra locking on each iteration.
+        As an added bonus, the \texttt{tcp\_user\_recv} function would be significantly simpler, reducing lock contention as fewer checks would be required to consume the required amount of data from the receieve queue. Pre-computation of the required blocks can be performed in one step instead of iteratively, per segment, with extra locking on each iteration.
 
         \subsection{Parallel Processing Efficiency}
         % One thread per _established_ TCP connection
@@ -67,9 +63,6 @@
         Special consideration has to be taken to reduce the risk of `Denial of Service' attacks in the form of \texttt{SYN} floods. A \texttt{SYN} flood is an attack that relies upon the listening host allocating resources for every connection that is initiated, from the reception of a \texttt{SYN} packet. Mitigation is simple, to only allocate resources after the connection is established. Processing for incomplete connections should be handled by the thread of the listening socket, until the connection is fully established, at which point a thread for the new connection would be allocated.
 
         \subsection{Asynchronous Logging}
-        Profiler tests showed that up to one quarter of the running time of the application was waiting for logs to be written. Synchronous I/O operations as are currently being used cause a bottleneck as two things happen each time a log entry is written (see Section~\ref{sec:logging}). Firstly, a call to \texttt{sprintf} is made to to compose the log entry which can occasionally take some time. Secondly a context-switch occurs to push the log data into the kernel, through the \texttt{write} call. Both of these operations together make logging quite slow.
-
-        A proposal for improved logging performance would be to employ a producer/consumer model with a thread dedicated to buffering and writing logs. It could be implemented quite simply using a semaphore and a queue.with a consumer thread to wait and flush logs as they arrive. As an added bonus, the queue would reduce the number of required \texttt{write} calls as the entire contents of the queue could be flushed in one operation.
         % ref logging performance from testing/logging
         % async with producer/consumer model for logs
 
@@ -80,7 +73,7 @@
 
         % TCP extensions for improved performance/throughput & reduced overhead
         \subsection{TCP Extensions}
-        TCP throughout its existence has accumulated a lengthy list of extensions, most of which are geared towards improving reliability, throughput, latency or a combination of the previous. In no particular order, the following is a list of extensions to the TCP implementation that can help to improve performance.
+        TCP throughout its existence has accumulated a lengthy list of extensions, most of which are geared towards improving reliablity, throughput, latency or a combination of the previous. In no particular order, the following is a list of extensions to the TCP implementation that can help to improve performance.
         \begin{itemize}[noitemsep]
             \item{Window Scaling}
             \item{Protection Against Wrapped Sequences}
@@ -91,23 +84,23 @@
         \end{itemize}
 
         \subsection{TCP Congestion Control}
-        One `requirement' for using a TCP implementation over the internet is the use of a congestion control mechanism; that is procedures to prevent overwhelming the destination host, or intermediate routers, with large volumes of packets. Congestion control algorithms ideally reach maximum throughput as quickly as possible whilst minimising lost and retransmitted packets.
+        One `requirement' for using a TCP implementation over the internet is the use of a congestion control mechanism; that is procedures to prevent overwhelming the destination host, or intermediate routers, with large volumes of packets. Contgestion control algorithms ideally reach maximum throughput as quickly as possible whilst minimising lost and retransmitted packets.
+        
+        There is a vast range of varying algorithms to control the flow of packets, all with differing feature-sets and specialities. Many designs use signs of packet loss or unexpected delays to determine congestion rates and as a result accommodate by reducing transmission rate or retransmitting accordingly.
 
-        There are a vast range of varying algorithms to control the flow of packets, all with differing feature-sets and specialities. Many designs use signs of packet loss or unexpected delays to determine congestion rates and as a result accommodate by reducing transmission rate or retransmitting accordingly.
-
-        One feature that most congestion control algorithms share is `slow start'; a feature to limit the initial burst of packets from a new connection. Transmission rates are slowly increased until losses occur or the route is saturated. This is used primarily to seed the control whilst also preventing large packet floods when it is unknown if they can be handled.
-
+        One feature that most/all congestion control algorithms share is `slow start'; a feature to limit the initial burst of packets from a new connection. Transmission rates are slowly increased until losses occur or the route is saturated. This is used primarily to seed the control whilst also preventing large packet floods when it is unknown if they can be handled.
+        
         % perform TSO or similar for sending large chunks of data
         \subsection{Segmentation Offload}
         % https://www.kernel.org/doc/Documentation/networking/segmentation-offloads.txt
         Segmentation offloading comes in many forms, some performed by hardware and others performed in software. Segmentation is often offloaded to the network device driver to reduce CPU load, especially in environments where the overhead of packet headers impacts performance.
 
         Segmentation can only be offloaded in certain circumstances as some packets cannot be implicitly segmented. IP packets with the `Do Not Fragment' (DF) bit set, for example, should not be segmented. Other issues arise that need to be taken into consideration when implementing software offloading, such as choosing an ID value for the IP header, whether each segment should increment the ID or whether they should all share the same value.
-
+        
         Hardware offload provides the best performance as it requires no extra work from the CPU but driver and hardware support is required. Offloading can be performed in the driver which is the next best alternative, with compatible driver support. Processing requirements are higher but there is still a performance gain overall~\cite{linux-offload}.
         Finally software offloading has the highest overhead but requires no driver support and can be performed at the last stage, before driver intervention. Software implementations can still provide $>$10\% performance improvement over non-offloaded segmentation.
 
-        In userspace, there is little/no access to network drivers and therefore unlikely to be access to offload functionality, software or hardware. Software offloading can be implemented in software, directly before transmission of the packets through the interface, much like GSO does for Linux~\cite{linux-gso}.
+        In userspace, there is little/no access to network drivers and therefore unlikely to be access to offload functionality, software or hardware. Software offloading can be implemented in software, directly before transmission of the packets through the interface, much like GSO does for Linux~\cite{linux-gso}. 
 
         % configuration
         \subsection{Configurable Logging}
@@ -119,13 +112,25 @@
 
         % system-wide network daemon with IPC library
         % see journal section 4.4
+        \subsection{Modes of Operation}
 
-        \subsection{Running as a system daemon}
-        Complexity in the form of required inter-process communication and distributed connection tracking is required for this scenario. A separate daemon process gives the freedom to run many sibling processes, with one or more open sockets each, all handled through the single `master' daemon. The requirement for this to work is solid communication channel between the master and slave processes using the discussed methods in Section~\ref{sec:demultiplex}.
+            \subsubsection{Inclusion as a library}
+            % Allowing the user flexibility with the network stack as a callable entity is the simplest situation as all that is required is a single library object with an API and sufficient usage documentation. It is the responsibility of the user application to call the networking initialisation routines, configure interfaces and perform optional inter-process communication if it is required. The network stack must be self-contained and thread-safe to prevent causing unwanted bugs in user programs.
 
-        Many of the execution routines for initialising the slave processes are similar to those used in the current standalone application. The differences are that a connection will be attempted to the master daemon process to initialise and shutdown connections created by the \texttt{socket()} call. This construction should provide flexibility to run in one of two operating methods: % chktex 36
-        \begin{enumerate}
-            \item{All TCP connections are handled by the master process}: \textit{Slave processes will call \texttt{read()} and \texttt{write()} to request data from the master process. Demultiplexing and TCP processing happen concurrently, for all TCP connections across all processes, in the single daemon process, and just payload data is exchanged with the destination process.} % chktex 36
-            \item{TCP connections are handled by the individual destination processes} \textit{The daemon process is only responsible for exchange of network packets from the interface and demultiplexing packets before they are handed over to the client applications for TCP processing.}
-        \end{enumerate}
+            \subsubsection{Running as a standalone program}\label{sec:standalone}
+            % As only one process is involved in the lifecycle of this scenario, complex inter-process communication is not necessary and the demultiplexing stage of processing can be simplified and internalised.
+            % This is the more common use case for this project, providing a single network stack with one or more sockets in short-lived processes. For example, the given usage suggestion in Section~\ref{sec:aim} is representative of how a standalone tool might be used.
+
+            % TCP connections will be processed within the process, directly alongside demultiplexing, all running in separate threads to the main process worker thread. Standard libc function calls such as \texttt{socket()}, \texttt{read()} and \texttt{write()} will have to be hijacked and redirected to the in-process stack instead of the standard operation of making system calls. This can be accomplished through a feature of the dynamic loader, `ld', that loads shared libraries into dynamic binaries at runtime. A hijacking library can be injected before the execution of the process starts to redirect the relevant function calls using `libdl' and initialise the internal network stack, before resuming the normal process entry point. % chktex 36
+
+            \subsubsection{Running as a system daemon}
+            % Complexity in the form of required inter-process communication and distributed connection tracking is required for this scenario. A separate daemon process gives the freedom to run many sibling processes, with one or more open sockets each, all handled through the single `master' daemon. The requirement for this to work is solid communication channel between the master and slave processes using the discussed methods in Section~\ref{sec:impl-demult}.
+
+            % Many of the execution routines for initialising the slave processes are similar to those in Section~\ref{sec:standalone}. The differences are that a connection will be attempted to the master daemon process to initialise and shutdown connections created by the \texttt{socket()} call. This construction should provide flexibility to run in one of two operating methods: % chktex 36
+            \begin{enumerate}
+                \item{All TCP connections are handled by the master process}: \textit{Slave processes will call \texttt{read()} and \texttt{write()} to request data from the master process. Demultiplexing and TCP processing happen concurrently, for all TCP connections across all processes, in the single daemon process, and just payload data is exchanged with the destination process.} % chktex 36
+                \item{TCP connections are handled by the individual destination processes} \textit{The daemon process is only responsible for exchange of network packets from the interface and demultiplexing packets before they are handed over to the client applications for TCP processing.}
+            \end{enumerate}
+
+        \subsection{Use cases}
 

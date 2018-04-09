@@ -1,30 +1,39 @@
 %! TEX root = ../report.tex
 
-\chapter{Specification}
+\chapter{Specification}\label{chp:spec}
     % How you analysed the problem
     % Give an appropriate specification of the solution
-
-    % Requirements from journal
-    % \begin{itemize}
-    %     \item This project must produce a TCP/IP implementation that runs completely in Linux userspace with no/minimal kernel modification
-    %     \item This project must follow the original RFC 793~\cite{rfc793} specification for TCP
-    %     \item This project must provide a network stack as a library such that it can be easily implemented in other software
-    %         \begin{itemize}
-    %             \item There should be sufficient documentation to demonstrate examples of how this can be achieved
-    %         \end{itemize}
-    %     \item This project should provide sufficient interface to the user to view the inner workings of a TCP connection
-    %     \item This project could implement modern TCP extensions such as Window Scaling, Selective \texttt{ACK} and Congestion Control.
-    % \end{itemize}
 
     % Define specific behavior or functions
     % what a software system should do
     \section{Functional Requirements}
+    \begin{itemize}
+        \item This project must produce a TCP/IP implementation that runs completely in Linux userspace with no kernel modification.
+        \item This project must follow the original RFC 793~\cite{rfc793} specification for TCP.
+        \item This project could implement newer TCP extensions or improvements.
+        \item The implementation should be portable across Linux and Unix-like systems.
+        \item This project must provide a network stack as a library such that it can be easily implemented in other software.
+        \item This project should provide functionality to inject the network stack into existing applications.
+        \item Customisability and plugability could be implemented to allow expansion and/or modification of new and existing protocols.
+        \item Adapting the library or binaries should be flexible and should provide various modes of operation to suit a wide range of systems.
+    \end{itemize}
 
     % A requirement that specifies criteria that can be used to judge the operation of a system, rather than specific behaviors.
     % constraints on how the system should do so
     % elaborates a performance characteristic
-    \section{\mbox{Non-functional Requirements}}
+    \section{Non-functional Requirements}
+    \begin{itemize}
+        \item The code should be sufficiently commented such that it can be easily understood, modified and learned from.
+        \item Performance of data transfers within the TCP subsystem should be able to sustain at least 100 megabit/second average throughput to stay relevant in modern network scenarios.
+    \end{itemize}
 
     % What the user expects the software to be able to do
     \section{User Requirements}
+    To be able to quantify requirements for a user, first the different types of users of the application must be defined.
+
+        \subsection{Student}
+        Using the project as a learning tool demands in-depth documentation and clear, commented code. Users will need to be able to follow through the code and cross-reference it with the logs as it runs. Running the software against existing programs and linking with new programs should be as simple as using any other standard dynamic C library.
+
+        \subsection{Researcher}
+        Customisability of internal protocols should be straight-forward with minimal code refactoring required to perform the desired changes. The possibility of adding new or modified protocols into the existing stack should require only the addition of only a few lines of code without having to refactor the layering to accommodate new protocol designs.
 

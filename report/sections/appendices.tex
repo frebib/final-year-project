@@ -1,0 +1,183 @@
+%e TEX root = ../report.tex
+
+\begin{appendices}
+\addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
+\makeatletter
+\addtocontents{toc}{%
+  \begingroup
+  \let\protect\l@chapter\protect\l@section % chktex 1
+  \let\protect\l@section\protect\l@subsection % chktex 1
+}
+\makeatother
+
+\chapter{Example Configuration Schema}\label{apx:config-schema}
+
+    \section{Examples}
+    Given are proposed example schemas for configuration files, in YAML format, to set-up and modify various subsystems within the network stack. All given examples are designed for the current feature-set and capability levels.
+
+        \subsection{Interface Example}\label{interface-example}
+
+        Network interface definitions. Usually at least one of these is required.
+
+        \begin{lstlisting}[language=yaml,gobble=8]
+        interfaces:
+          # this is the name of the TAP device
+          netstack-tap:
+            # bridge TAP interface to 'br0'
+            type: TAP
+            bridged-to: "br0"
+            hwaddr: "00:11:22:33:44:55"
+            ipaddr:
+              - ipv4:    "192.168.128.25/24"
+                gateway: "192.168.128.1"
+                routes:
+                  # this is route is implicit
+                  - "192.168.128.1/24"
+                  # optional extra routes
+                  - address: "10.20.3.16/26"
+                    metric:  100
+          tun0:
+            type: TUN
+            address: dhcp
+            tunables:
+              - respond_icmp: false
+        \end{lstlisting}
+
+        \vfil
+
+        \subsection{Logging Example}\label{apx:config-schema-log}
+
+        Logs can be selectively directed to files or streams. Certain log messages can also be suppressed, ideal for pinpointing those pesky bugs hiding amongst the noise.
+
+        \begin{lstlisting}[language=yaml,gobble=8]
+        log:
+          # killswitch. disables all logging
+          # to improve performance
+          disabled: true
+          output:
+            # log output streams
+            - file: stdout
+              level: "FRAME"
+            - file: stderr
+              level: "-WARN"
+            - file: ~/netstack-debug.log
+              level: "DEBUG-"
+          # tunables to filter logs
+          config:
+            - log_hwaddr: false
+            - icmp: false
+            - ipv4: false
+        \end{lstlisting}
+
+        \subsection{Tunable Example}\label{tunable-example}
+
+        Various tunables in the network stack and in protocols can be enabled/disabled and adjusted for optimal performance or feature testing.
+
+        \begin{lstlisting}[language=yaml,gobble=8]
+        tunables:
+          - respond_icmp: true
+          - tcp_windowscaling: false
+          - tcp_timewait: 60s
+          - tcp_nagle: true
+          - tcp_initwindow: 64k
+        \end{lstlisting}
+
+        \vfil
+
+        \subsection{ARP Example}\label{arp-example}
+
+        Static ARP entries, such as those for the local network router, can be defined as below. In most cases this is not necessary.
+
+        \begin{lstlisting}[language=yaml,gobble=8]
+        arp:
+          - ipv4: 192.168.128.1
+            # references defined interface
+            intf: netstack-tap
+            hwtype: ether
+            hwaddr: 01:23:45:67:89:AB
+        \end{lstlisting}
+
+    \section{File Format}\label{file-format}
+
+        \subsection{Configuration file naming}\label{configuration-file-naming}
+
+        The following names are searched by default by netstack:
+        \begin{itemize}[noitemsep,leftmargin=2em]
+            \item{\texttt{netstack.conf}}
+            \item{\texttt{netstack.yml}}
+            \item{\texttt{netstack.yaml}}
+        \end{itemize}
+
+        In order from top to bottom, the following directories are searched for a configuration file:
+        \begin{itemize}[noitemsep,leftmargin=2em]
+            \item{\texttt{/etc/netstack}}
+            \item{\texttt{\$XDG\_CONFIG\_HOME}}
+            \item{\texttt{\$HOME/.config/netstack}}
+        \end{itemize}
+
+        Additionally, many netstack tools (such as \texttt{netd}) should allow overriding the configuration file location from the command line. See the specific documentation for such tools for the appropriate flag.
+
+        \vfil
+
+        \subsection{File structure}\label{file-structure}
+
+        Every netstack configuration file \emph{must} define a schema version with the \texttt{version} top-level tag. Major versions will always be backwards compatible with minor versions. Wherever possible, major versions will also try to be backwards compatible with older major versions however this cannot be guaranteed, for example, in the case of deprecated or removed features.
+
+        \emph{All fixed key names are case-insensitive.}
+
+        \subsection{Top-Level Sections}\label{top-level-sections}
+
+        \begin{itemize}[noitemsep]
+            \item{\texttt{version}: A string containing \texttt{x.x} in the form \texttt{major.minor}. \textit{(required)}}
+            \item{\texttt{interfaces}: One or more interfaces with configuration for link and internet layer addressing \textit{(recommended)}}
+            \item{\texttt{logging}: Log configuration such as filters and log file destinations}
+            \item{\texttt{tunables}: Various configurable options such as flags and numeric values}
+            \item{\texttt{arp}: Static ARP configuration}
+        \end{itemize}
+
+\onecolumn
+
+\chapter{Project Structure}\label{apx:proj-structure}
+
+\section{Overview of the source repository}
+
+\dirtree{%
+    .1 \dir{netstack}.
+    .2 \dir{tools}\dotfill\DTcomment{A collection of utilities using netstack}.
+    .3 \dir{netd}\dotfill\DTcomment{Simple netstack test application}.
+    .3 \dir{httpget}\dotfill\DTcomment{A simple webserver query tool}.
+    .3 \dir{nshook}\dotfill\DTcomment{netstack init hook library}.
+    .3 \exe{netstack-run}\dotfill\DTcomment{netstack injection utility}.
+    .2 \dir{tests}.
+    .2 \dir{lib}\dotfill\DTcomment{netstack source code}.
+    .3 \glob{**.c}.
+    .2 \dir{include}.
+    .3 netstack.h.
+    .3 \dir{netstack}\dotfill\DTcomment{netstack header files}.
+    .4 \glob{**.h}.
+    .2 .drone.yml\dotfill\DTcomment{CI configuration file}. % chktex 26
+    .2 README.md.
+    .2 Dockerfile.
+    .2 Makefile\dotfill\DTcomment{Primary Makefile. Builds all by default}.
+}
+
+\section{Running the example programs}
+
+\begin{enumerate}
+    \item Configure static addressing in \texttt{lib/netstack.c} with a valid IP and gateway addresses
+    \item Compile everything with the Makefile:\\
+        \texttt{\$ CFLAGS=-D\_GNU\_SOURCE make}
+    \item Run \texttt{httpget} using \texttt{netstack-run}:\\
+        \texttt{\$ tools/netstack-run ./httpget www.cs.bham.ac.uk 80} % chktex 26
+    \item Run any program you like using \texttt{netstack-run}:\\
+        \texttt{\$ tools/netstack-run <your program here>}
+\end{enumerate}
+
+\medskip
+
+\textit{Note:} By default \texttt{netstack-run} will print network stack output to \texttt{stderr}. Append \texttt{2>/dev/null} to the command to suppress the logging output
+
+\twocolumn
+
+\addtocontents{toc}{\endgroup}
+\end{appendices}

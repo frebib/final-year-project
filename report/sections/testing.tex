@@ -3,15 +3,87 @@
 % Explain your testing strategy and provide convincing examples of tests
     % In project involving software development it is usual to relate the tests to your Software Requirements Specification.
 
-\chapter{Testing}
+\chapter{Testing}\label{chp:testing}
+
     % CI building
+    \section{Continuous Integration}
+    Continuous Integration (CI) is a useful tool that when used correctly can handle the repetitive tasks such as compiling software and running simple tests. One important software development rule when publishing source code to a public repository is to ensure every commit builds and runs. Trying to maintain this high standard whilst also juggling uncommitted changes for other features can be taxing.
     % multiple libc impl, multiple compilers
-    \section{Minimum Working Example}
-        % testing against real working code for basic TCP operation
-    \section{Performance Testing}
-        % Profiling with callgrind (ref callgrind)
-        % throughput tests
-    \section{Logging}
-        % useful for debugging
-        % Not useful for debugging throughput
+    For every commit, a CI server compiled the project using both \texttt{gcc} and \texttt{clang} compilers against both GNU and musl \texttt{libc} implementations for the best interoperability on Linux systems. Testing against other Unix operating systems was not available. Provided along with each build is a log of build warnings and errors that are flagged for failing builds, so that they can be quickly fixed and amended. The simple build testing brought to light several issues relating to missing code or incomplete merges.
+    
+    Functionality for running and validating unit tests was available too within the CI system however only two minor test suites were written and provided little extra help once the tests passed. Not enough time was available to allow for the addition of unit tests for the whole library.
+
+    % unit/integration tests would have been useful to also taken too long to write and manage
+
+    \section{Testing Strategies}
+    The majority of time spent programming has been towards building a working TCP implementation that will interwork with existing systems, as it is the easiest method of testing expected behaviour. Using Linux as the known-good implementation to observe and respond to, as it was readily available, made debugging strange behaviours simpler. Through the wide array of network debugging and testing tools available on Unix systems such as tcpdump and nping, crafting specific packet patterns and observing real-time reactions of both this project and reference implementations was trivial.
+
+    % testing against real working code for basic TCP operation
+    As a basic TCP connection tool, netcat was an essential peer client and server for debugging TCP data transfer problems. Paired with GNU coreutils, netcat allowed quick construction of TCP connections, sending and receiving specially crafted payloads to thoroughly and repeatably test required functionality of the TCP implementation.
+
+    % repeated success
+    Network transmission is renowned for unreliability and as a result it was important to thoroughly test code paths multiple times to ensure sound implementation and adherence of the TCP specification. Many issues, relating to concurrency and locking, only appeared very rarely from race conditions in the code. Repeated and directed tests towards these problems often highlighted issues quickly.
+
+    % many tests will succeed most of the time but fail occasionally
+    % edge-cases are VERY common and hard to spot
+    Lengthy tests were performed to ensure connection endurance and continuous transfer. Tests comprised of transferring multiple gigabytes of data at once were performed repeatedly to ensure connections both performed well and could sustain heavy load and still produce identical data signatures at both ends of the connection. Many tests ended up slowing to a crawl, crashing due to memory errors or endlessly allocating memory until the computer ground to a halt. Most of the problems identified by these tests were either severe issues rendering the software useless or were rare edge-case bugs that wouldn't have been identified without them.
+
+    \section{Minimal Working Example}\label{sec:test-working-example}
+    A realistic goal was to reliably transfer at least enough data to completely wrap the TCP sequence space at least once.
+    The test payload used was 4.1 GiB in size, just slightly larger than the 4.0GiB of the TCP sequence number space. It was transferred in both directions between netcat on Linux on a remote device and this project performing the same basic read/write operation on the other. Both devices connected to the same subnet, communicating through only switches and no routers.
+
+    A file containing random data was generated on the local device and then loaded into a the network stack to be sent. \texttt{tmpfs} was used for file backing on both the sender and receiver to reduce filesystem overhead.
+
+    \texttt{\small\textcolor{ForestGreen}{local \$} base64 /dev/urandom | head -c 4402341478 > /tmp/randfile}
+
+    A cryptographic hash of the data was taken using \texttt{sha256sum}, to ensure integrity of the file.
+
+    \texttt{\small\textcolor{ForestGreen}{local \$} sha256sum /tmp/randfile\\3539f4ed21b052dbcc717d1a7dcfe97fd2ca06i4\ldots}
+
+    For the test, a simple C program using sockets was written to open, read and transfer the file, much the same way that netcat operates.\\
+    The remote device was configured to listen for the incoming file and to write it to disk
+
+    \texttt{\small\textcolor{RoyalBlue}{remote \$} nc -Nl 2345 <\&- > /tmp/randfile\\4.10GiB 0:01:52 [37.2MiB/s] [  <=>  ]}
+
+    Finally after the file transfer had completed, a checksum of the received file was taken to ensure the file had arrived exactly as it was transmitted.
+
+    \texttt{\small\textcolor{RoyalBlue}{remote \$} sha256sum /tmp/randfile\\3539f4ed21b052dbcc717d1a7dcfe97fd2ca06i4\ldots}
+
+    This test methodology provides several important facts about transferring large amounts of data between Linux and this network stack implementation, in no particular order:
+    \begin{itemize}[noitemsep]
+        \item{Transfers totalling to amounts larger than the total TCP sequence space can address ensures that wrapping sequence numbers works as expected.}
+        \item{Data is transferred in order and segmented/reassembled correctly.}
+        \item{Given the correct environment, data transfer be fast, even in the worst-case scenario.}
+        \item{Interoperability with Linux, and in theory other implementations, is working correctly.}
+    \end{itemize}
+
+    \section{Performance \& Bug Testing}\label{sec:perf-bug-testing}
+    % memory leak checking with valgrind/memcheck
+    Working with high-speed data transfer can quite quickly result in large memory leaks, even in simple programs. It is paramount that no memory is leaked at any point in the application lifecycle. Valgrind~\cite{valgrind} with \texttt{memcheck}, a memory checking tool, was incredibly helpful in identifying and resolving memory leaks. In particular it was also helpful for identifying crashes due to memory errors, often due to incorrect pointer arithmetic.
+
+    % thread error checking with valgrind/drd
+    % Profiling with valgrind/callgrind (ref callgrind)
+    Valgrind also provides other tools for testing correctness of other aspects of a program. DRD, a thread error detector, was heavily utilised for identifying locking errors, especially deadlocks and regions of code without locking. Callgrind, a profiling tool, was useful to identify slow or busy sections of the program code, by function.
+
+    Having the power to observe and inspect memory accesses at real time comes with a large performance penalty. In most cases the resulting performance was $10 \mhyphen 100 \times$ slower than standard operation. In most cases the speed was not an issue as once the bugs were identified and fixed, the program could be re-run at full speed without the memory monitoring.
+
+    \section{Logging}\label{sec:logging}
+    Profiling with Callgrind showed that up to 25\% of the computation time whilst transferring a small file was spent formatting and writing log entries. Logging is an essential tool for debugging any application as it allows the internal state of the application to be viewed by the user in real time.
+
+    % useful for debugging
+    This project makes extensive use of logs to produce informative output with data and other beneficial information about the operation of the process. As well as pre-defined messages, log entries are.colour coordinated according to their severity. Tracking bright red and purple log entries in a stream of fast flowing messages has proved to be much simpler than attempting to identify serious issues from just the text alone.
+
+    % Not useful for debugging throughput
+    When attempting to debug particular issues related to high-speed transmission, such as timing problems, the logs become more of a hindrance than a useful tool as they have a significant impact on data transmission speed. Much like Valgrind, the insight provided comes a cost of performance. Peak performance of $> 300$ megabits/s when logging is disabled becomes around 1 tenth of that when logging is enabled, depending on where the logs are written to. Nullifying the logs by writing them to \texttt{/dev/null} yields performance very close to that of no logging, only from the overhead of formatting the unused log messages and the write system calls.
+
+    Some performance could be retained when using a fast in-memory buffer for log messages, such as `Alacritty', a GPU accelerated terminal emulator written in Rust. Typically, throughput of $100 - 120$ megabits/s could be achieved which is a $4 \mhyphen 8 \times$ improvement over writing logs to file or a standard terminal.
+
+
+    \section{Tracing Packets}
+    % internal logging
+    Every packet, incoming or outgoing, that is processed by the network stack is logged. A breakdown of the protocol layers are produced. Initially, observing packet information was used for detecting corrupt packets or incorrectly formed segments and used as an aid to identify bugs in packet construct routines. Throughout debugging and testing the higher-level TCP protocol, the breakdown of packet information was invaluable to ensure code correctness and real network packets identify as the code should have produced them.
+
+    % tcpdump
+    Most throughput-induced issues had to be debugged blind, with no logging and no checking tools as it was the most reliable method of repeating such bugs. One tool that had little impact on networking performance whilst still giving a reasonable insight into the operation of the network stack is tcpdump. As well as providing basic packet information, including a detailed breakdown of the protocols, such as IPv4 and TCP, accurate timestamps are also given.
+    Using this information it was often viable to infer what the problems were caused by with just the packet traces and intuition by cross-referencing the observed behaviour with the code paths that should have caused it.
 

@@ -9,7 +9,7 @@
     KEYWORDS = {TCP ; USER LEVEL. HIGH PERFORMANCE ; PROTOCOL IMPLEMENTATION ; ALF ; ILP},
     PDF = {https://hal.inria.fr/inria-00074040/file/RR-2650.pdf},
     HAL_ID = {inria-00074040},
-    HAL_VERSION = {v1},
+    HAL_VERSION = {v1}
 }
 @misc{lwip,
     title = {Design and Implementation of the lwIP TCP/IP Stack},
@@ -40,7 +40,14 @@
 @manual{tpacket,
     title = {\texttt{packet\_mmap} documentation},
     author = {Linux Kernel Development Team},
-    url = {https://www.kernel.org/doc/Documentation/networking/packet_mmap.txt}
+    url = {https://www.kernel.org/doc/Documentation/networking/packet_mmap.txt},
+    urldate = {2018-04-05}
+}
+@manual{netmap,
+    title = {\texttt{netmap} -- a framework for fast packet I/O},
+    author = {FreeBSD Kernel Development Team},
+    url = {https://www.freebsd.org/cgi/man.cgi?query=netmap},
+    urldate = {2018-04-05}
 }
 
 @techreport{rfc675,
@@ -53,9 +60,19 @@
     pages = {1-70},
     url = {https://tools.ietf.org/html/rfc675}
 }
+@article{cerf1974protocol,
+  title={A protocol for packet network intercommunication},
+  author={Cerf, Vinton and Kahn, Robert},
+  journal={IEEE Transactions on communications},
+  volume={22},
+  number={5},
+  pages={637--648},
+  year={1974},
+  publisher={IEEE}
+}
 @techreport{rfc793,
     author = {Postel, Jon and others},
-    title = {RFC 793: Transmission control protocol},
+    title = {RFC 793: Transmission Control Protocol},
     year = {1981},
     month = Sep,
     type = {RFC},
@@ -64,14 +81,26 @@
     url = {https://tools.ietf.org/html/rfc793}
 }
 @techreport{rfc896,
-   title = {Congestion control in IP/TCP internetworks},
-   author = {Nagle, John},
-   year = {1984},
-   month = Jan,
-   type = {RFC},
-   number = 896,
-   pages = {1-9},
-   url = {https://tools.ietf.org/html/rfc896}
+    title = {Congestion control in IP/TCP internetworks},
+    author = {Nagle, John},
+    year = {1984},
+    month = Jan,
+    type = {RFC},
+    number = 896,
+    pages = {1-9},
+    url = {https://tools.ietf.org/html/rfc896},
+    urldate = {2017-11-18}
+}
+@techreport{rfc1122,
+    title = {Requirements for Internet Hosts -- Communication Layers},
+    author = {Braden, Robert},
+    year = {1989},
+    month = Oct,
+    type = {RFC},
+    number = 1122,
+    pages = {1-116},
+    url = {https://tools.ietf.org/html/rfc1192},
+    urldate = {2018-04-03}
 }
 @techreport{internetchecksum,
     title = {Computing the Internet checksum},
@@ -116,4 +145,45 @@
     author = {Internet Assigned Numbers Authority},
     year = {2018},
     url = {https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml#ieee-802-numbers-1}
+}
+@online{linux-offload,
+    title = {Segmentation Offloading in Linux documentation},
+    author = {Linux Kernel Development Team},
+    url = {https://www.kernel.org/doc/Documentation/networking/segmentation-offloads.txt},
+    urldate = {2018-04-02}
+}
+@online{linux-gso,
+    title = {GSO: Generic Segmentation Offload},
+    author = {Xu, Herbert},
+    year = {2006},
+    month = June,
+    url = {https://lwn.net/Articles/188489/},
+    urldate = {2018-02-15}
+}
+@online{valgrind,
+    title = {Valgrind},
+    author = {Valgrind™ Developers},
+    year = {2017},
+    url = {http://valgrind.org},
+    urldate = {2018-04-03}
+}
+@techreport{rfc1918,
+    title = {RFC 1918: Address Allocation for Private Internets},
+    author = {Groot, Geert Jan de and Rekhter, Yakov and Karrenberg, Daniel and Lear, Eliot},
+    year = {1996},
+    type = {RFC},
+    number = 1918,
+    pages = {1-9},
+    url = {https://tools.ietf.org/html/rfc1918},
+    urldate = {2018-04-03}
+}
+@article{hovav2004model,
+  title={A model of Internet standards adoption: the case of IPv6},
+  author={Hovav, Anat and Patnayakuni, Ravi and Schuff, David},
+  journal={Information Systems Journal},
+  volume={14},
+  number={3},
+  pages={265--294},
+  year={2004},
+  publisher={Wiley Online Library}
 }

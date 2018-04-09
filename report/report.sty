@@ -2,10 +2,18 @@
 \usepackage[margin=6.2em,top=6em,bottom=8em,footskip=4em]{geometry}
 
 % Number the subsubsections
-\setcounter{tocdepth}{2}
+\setcounter{tocdepth}{1}
 
 % Set line spacing
 \linespread{1.05}
+
+% Superscript citations
+\DeclareCiteCommand{\cite}[\mkbibsuperscript]
+  {\bibopenbracket
+   \usebibmacro{cite:init}\let\multicitedelim=\supercitedelim}
+  {\usebibmacro{citeindex}%
+   \usebibmacro{cite:comp}}{}
+  {\usebibmacro{cite:dump}\bibclosebracket}
 
 % Marginal notes
 \setlength{\marginparwidth}{.75in} % width of marginal notes
@@ -14,9 +22,11 @@
 % Fix paragraph spacing and use of noindent
 \usepackage[parfill]{parskip}
 \usepackage[raggedright,nobottomtitles]{titlesec}
-\renewcommand{\bottomtitlespace}{4em}
+\renewcommand{\bottomtitlespace}{6em}
 \setlength{\columnsep}{16pt}
 
+% Fix weird title right-margin
+\titleformat{\chapter}{\normalfont\Huge\bfseries}{\thechapter}{24pt}{\Huge\bfseries}
 \titleformat{\section}{\filinner\raggedright\normalfont\Large\bfseries}{\thesection}{1em}{}
 \titleformat{\subsection}{\filinner\raggedright\normalfont\large\bfseries}{\thesubsection}{1em}{}
 \titleformat{\subsubsection}{\filinner\raggedright\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
@@ -35,3 +45,55 @@
 \renewcommand\section{\allowbreak\stdsection}
 \renewcommand\subsection{\allowbreak\stdsubsection}
 \renewcommand\subsubsection{\allowbreak\stdsubsubsection}
+
+% listing defaults for C
+\lstset{%
+    language=c,
+    basewidth=0.5em,
+    tabsize=4,
+    belowskip=-\parskip,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\ttfamily,
+    commentstyle=\color{gray}\ttfamily,
+    emph={addr_t,proto_t,eth_addr_t,uint8_t,uint16_t,uint32_t,uint64_t,size_t,ssize_t},emphstyle=\color{ForestGreen},
+    emph={[2]__attribute,packed},emphstyle={[2]\color{BrickRed}}
+}
+
+% style yaml in lstlisting
+
+\newcommand\YAMLcolonstyle{\color{black}\mdseries\ttfamily}
+\newcommand\YAMLkeystyle{\color{black}\bfseries\ttfamily}
+\newcommand\YAMLvaluestyle{\color{ForestGreen}\mdseries\ttfamily}
+
+\lstdefinelanguage{yaml}{%
+  keywords={true,false,null,y,n},
+  keywordstyle=\color{blue}\bfseries,
+  basicstyle=\YAMLkeystyle,
+  sensitive=false,
+  comment=[l]{\#},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{gray}\ttfamily,
+  stringstyle=\YAMLvaluestyle\ttfamily,
+  moredelim=[l][\color{orange}]{\&},
+  moredelim=[l][\color{magenta}]{*},
+  moredelim=**[il][\YAMLcolonstyle{:}\YAMLvaluestyle]{:},   % switch to value style at :
+  morestring=[b]',
+  morestring=[b]", % chktex 18
+  literate =    {---}{{\ProcessThreeDashes}}3
+                {>}{{\textcolor{red}\textgreater}}1
+                {|}{{\textcolor{red}\textbar}}1
+                {\ -\ }{{\mdseries\ -\ }}3,
+}
+
+% switch to key style at EOL
+\lst@AddToHook{EveryLine}{\ifx\lst@language\language@yaml\YAMLkeystyle\fi}
+
+\newcommand\ProcessThreeDashes{\llap{\color{cyan}\mdseries-{-}-}}
+
+% Define a "math hyphen"
+\mathchardef\mhyphen="2D % chktex 18
+
+% Colouring commands for dirtree
+\newcommand{\dir}[1]{\textcolor{NavyBlue}{#1}/}
+\newcommand{\exe}[1]{\textcolor{BurntOrange}{#1}*}
+\newcommand{\glob}[1]{\textcolor{red}{#1}}

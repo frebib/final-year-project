@@ -1,4 +1,14 @@
 %! TEX root = ../report.tex
 
-\chapter{Conclusion}
+\onecolumn
 
+\chapter{Conclusion}
+% produced a self-sufficient network utility that runs only in userspace
+% produced a library with many of the required features
+    % incomplete but functional
+
+% The final implementation of TCP runs without kernel modification, in userspace. 
+
+This project has produced clear and very well documented source code, ideal as a learning tool to supplement traditional teaching techniques. The produced TCP implementation operates well, purely in userspace and without any kernel modifications. Modifying the program or library sources and recompiling takes only a few seconds so is ideal for rapid prototyping of network protocol implementations, such as the provided TCP implementation. The code has been implemented with portability in-mind and therefore does not use any non-standard library functions so should work on many modern Unix implementations with at most minor modifications. Performance of TCP data transmission is more than typical especially for the basic implementation that was used. Not all of the required features ended up in the current library, notably the multiplexed and non-blocking I/O, due to implementation complexity and time constraints although even without them enough functionality is available for the software to be usable in most applications.
+
+\twocolumn

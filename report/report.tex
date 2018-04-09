@@ -3,15 +3,23 @@
 \usepackage{float}
 \usepackage{listings}
 \usepackage{multicol}
+\usepackage{dirtree}
 \usepackage{babel}
 \usepackage{csquotes}
+\usepackage{amsmath}
 \usepackage{isodate}
+\usepackage[toc]{appendix}
 \usepackage[usenames, dvipsnames]{color,xcolor}
 
 % Configure bibliography
 \usepackage[backend=biber,sorting=none,citestyle=numeric-comp]{biblatex}
 \usepackage[hidelinks]{hyperref}
 \addbibresource{references.bib}
+
+% Configure glossary
+\usepackage[toc,acronyms]{glossaries}
+\makeglossaries{}
+\input{sections/glossary.tex}
 
 \usepackage{report}
 
@@ -23,11 +31,18 @@
 \tikzstyle{box}   = [rectangle, minimum height=1.5em, minimum width=4em, draw=black!50, thick]
 \usepackage{bytefield}
 
-\title{A TCP/IP networking stack implementation in userland}
+\title{A TCP/IP Networking\\Stack Implementation\\in Userland}
 \author{Joe Groocock -- 1467414} % chktex 8
 \supervisor{Dr Ian Batten}
 \department{Computer Science}
-\degree{MSc in Computer Science}
+\degree{MSci in Computer Science}
+
+\hypersetup{pdfinfo={%
+    Title={A TCP/IP Networking Stack Implementation in Userland},
+    Author={Joe Groocock - 1467414}, % chktex 8
+    Subject={MSci in Computer Science, University of Birmingham},
+    Keywords={TCP, IP, TCP/IP, Networking, Userland}
+}}
 
 \begin{document}
 
@@ -38,27 +53,36 @@
 \tableofcontents
 \endgroup
 
-\pagenumbering{arabic}
-
 % TODO: Make abstract relevant to final project
 % - it states the problem that you set out to solve
 % - it describes your solution and method
 % - it states a conclusion about the success of the solution
 \begin{abstract}
-    TCP/IP network stacks included in most modern operating systems are opaque to the user and mostly unconfigurable. This article aims to design and produce a coherent specification for an efficient, high performance TCP/IP network stack that can be used as a software library, standalone application or system-wide daemon to provide network access to many applications. It is provided as a learning and academic research tool that can be tweaked, extended and analysed in depth to aid in gaining a better understanding of how operating systems handle networking and TCP/IP as whole.
+TCP/IP network stacks included in most modern operating systems are opaque to the user and mostly unconfigurable. This paper outlines designing and implementing a performant and flexible TCP/IP standalone implementation for Unix systems. Useful as a tool for further learning, research and experimentation with various network protocols, it provides documentation and source code for a high-performance data transfer outside the kernel. Provided as a learning and academic research tool that can be tweaked, extended and analysed in depth to aid in gaining a better understanding of how operating systems handle networking and TCP/IP\@. Many common issues surrounding userspace networking are evaluated and resolved to produce a working software library and accompanying set of tools.
 \end{abstract}
 
+\section*{Acknowledgements}
+Many thanks to all the support and advice from my girlfriend and housemates. Thanks to Dr Batten for his insightful advice on Unix and networking.
+
+\twocolumn
+
+\pagenumbering{arabic}
+
 \input{sections/introduction.tex}
-\input{sections/related-work.tex}
 \input{sections/specification.tex}
+\input{sections/background.tex}
+\input{sections/related-work.tex}
 \input{sections/design.tex}
 \input{sections/implementation.tex}
 \input{sections/testing.tex}
-\input{sections/project-management.tex}
-\input{sections/results.tex}
 \input{sections/evaluation.tex}
 \input{sections/conclusion.tex}
 
+\input{sections/appendices.tex}
+
 \printbibliography % chktex 1
+
+%\printglossary[type=\acronymtype]
+%\printglossary[type=main]
 
 \end{document}

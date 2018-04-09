@@ -11,7 +11,7 @@
 \NeedsTeXFormat{LaTeX2e}[1995/12/01]
 \ProvidesClass{bhamreport}[1997/07/15 University of Birmingham report class
 definition]
-\RequirePackage{setspace,graphicx}
+\RequirePackage{setspace,graphicx,fix-cm}
 
 % The following options are what you get if you do not specify ANY options.
 % E.g., \documentclass{utthesis}
@@ -48,14 +48,25 @@ definition]
 \newcommand{\clearemptydoublepage}{\newpage{\pagestyle{empty}\cleardoublepage}}
 
 \renewenvironment{abstract}
-{\begin{center}\begin{minipage}{0.85\textwidth}\section*{\centering\normalsize\abstractname}\vspace{0.5em}\begingroup}
-{\endgroup\end{minipage}\end{center}}
+{
+  \onecolumn
+  \null\vspace{\fill}
+  \begin{center}
+  \begin{minipage}{0.8\textwidth}
+  \begin{center}{\Large\bfseries Abstract}\bigskip\end{center}
+  \begingroup
+}{
+  \endgroup
+  \end{minipage}
+  \vspace{\fill}
+  \end{center}
+}
 
 \newenvironment{acknowledgments}%
 {\clearemptydoublepage
   \thispagestyle{plain}
   \begin{center}
-    \section*{Acknowledgments}
+    \section*{Acknowledgements}
   \end{center}
   \hrule
   \vspace{2mm}
@@ -99,6 +110,7 @@ definition]
 \global\def\@title{\mbox{}}
 \global\def\@gyear{\number\year} % Default year is current year
 
+\newcommand\HUGE{\@setfontsize\Huge{32}{38}}
 
 %% Change \maketitle to follow the SGS guidelines.
 \renewcommand{\maketitle}
@@ -109,22 +121,20 @@ definition]
         \begin{center}
           \mbox{}
           \vfill
-          \begin{sc}
-            \parbox{0.9\textwidth}{\Huge\center{\@title}\\}
-          \end{sc}
+            \parbox{0.9\textwidth}{\HUGE\bfseries\center{\@title}\\}
           \vfill
+          \Large
           {\@author}\\
-          Supervisor: {\@supervisor}\\
-          \vspace*{0.4em}
-          \includegraphics[width=9em,height=9em]{crest.png}\\
-          \vspace*{0.5em}
+          Supervised by {\@supervisor}\\
+          \vspace*{0.8em}
           {\@degree}\\
-          \vspace*{0.5em}
+          \vspace*{2em}
+          \includegraphics[width=11em,height=11em]{crest.png}\\
+          \vspace*{2em}
           School of {\@department}\\
           University of Birmingham\\
+          {\@gyear}
           \vfill
-          Copyright {\copyright} {\@gyear} School of {\@department}, University of Birmingham\\
-          \vspace*{0.5em}
         \end{center}
       \end{large}
     \end{spacing}

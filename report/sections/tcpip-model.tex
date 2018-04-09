@@ -1,0 +1,44 @@
+%! TEX root = ../report.tex
+
+\section{TCP/IP Model}
+There are many varying interpretations of the TCP/IP network model and the layers it consists of. According to RFC 1122~\cite{rfc1122} there are 4 layers, presented as shown in Figure~\ref{fig:tcpip-model}.
+
+\begin{figure}[H]
+    \begin{center}
+        \setlength{\tabcolsep}{2pt}
+        \begin{tikzpicture}[
+            node distance=0em,
+            every node/.style={%
+                inner sep=0.7em,
+                outer sep=0,
+                draw=black!80,
+                thick
+            }
+        ]
+            \fontsize{9pt}{9pt}
+            \node [minimum width = 10em, minimum height = 3em, fill=yellow!50]                    (applicat)  {Application (4)};
+                \node [right = of applicat, xshift=1em, fill=yellow!30] (http)  {HTTP};
+                \node [right = of http, fill=yellow!30]     (ssh)   {SSH};
+            \node [minimum width = 10em, minimum height = 3em, fill=ForestGreen!50, below = of applicat] (transport) {Transport (3)};
+                \node [right = of transport, xshift=1em, fill=ForestGreen!30] (tcp)  {TCP};
+                \node [right = of tcp, fill=ForestGreen!30]     (udp)   {UDP};
+            \node [minimum width = 10em, minimum height = 3em, fill=cyan!50, below = of transport](internet)  {Internet (2)};
+                \node [right = of internet, xshift=1em, fill=cyan!30] (ipv4)  {IPv4};
+                \node [right = of ipv4, fill=cyan!30]     (ipv6)   {IPv6};
+            \node [minimum width = 10em, minimum height = 3em, fill=purple!50, below = of internet] (network)   {Network/Link (1)};
+                \node [right = of network, xshift=1em, fill=purple!30] (eth)  {Ethernet};
+                
+            \node [draw=none,below = of network,yshift=-1em] (layers)   {\textit{Layers}};
+            \node [draw=none,right = of layers,xshift=4em]              {\textit{Protocols}};
+            \draw [->,gray!80,thick] ([xshift=-1.2em]network.west)  -- ([xshift=-1.2em]applicat.west) 
+                    node[midway,draw=none,text=gray,above,rotate=90] {Abstraction};
+        \end{tikzpicture}
+    \end{center}
+    \caption{TCP/IP network model}\label{fig:tcpip-model}
+\end{figure}
+
+Each layer provides one or more protocols that define guarantees about the data they carry. The higher layers provide protocols that are more capable and complex than the layer below. Each layer also accumulates the features of the layer below it. For example the \textit{internet} layer provides host addressing which can be leveraged from the transport layer.
+
+This project implements the lowest three layers of the TCP/IP model and provides an API to interface with them from the application layer.
+
+

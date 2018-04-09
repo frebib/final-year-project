@@ -1,33 +1,30 @@
 %! TEX root = ../report.tex
 
-\section{Internet Protocol Overview}\label{sec:intro-ip}
-The Internet Protocol, or as it is more commonly known, IP, provides global addressing across networks. IP mandates that every interconnected host must have an IP address to be able to communicate. It also ensures that any interconnected hosts can communicate with any other interconnected host, given thier address through the process of routing, regardless of the physical distance or barriers. The largest IP network of all is the `internet' where any device with an address can (in theory) communicate with any other device, anywhere across the planet.
+\section[IP Overview]{Internet Protocol Overview}\label{sec:intro-ip}
+The Internet Protocol (IP) provides global addressing across networks. IP mandates that every interconnected host must have an IP address to be able to communicate. It also ensures that any interconnected hosts can communicate with any other interconnected host, given their address through the process of routing, regardless of the physical distance or presence of barriers. The largest IP network is the `internet' where any device with an address can (in theory) inter-communicate with any other device.
 
 % Talk about IPv4 vs IPv6
-To date there have been two prominent versions of IP, both of which are still in widespread used today across the internet and private intranets alike. Version 4 of IP, first published in \citeyear{cerf1974protocol} by \citeauthor{cerf1974protocol}~\cite{cerf1974protocol}, the first non-experimental datagram protocol in the Internet Suite. It is still the most widely used protocol today almost 45 years on.
+To date there have been two prominent versions of IP, both of which are still in widespread used today across the internet and private intranets alike. IP Version 4, first published in \citeyear{cerf1974protocol} by \citeauthor{cerf1974protocol}~\cite{cerf1974protocol} was the first non-experimental datagram protocol in the Internet Suite. It is still the most widely used protocol today almost 45 years on.
 
-Following the massive success of IPv4 is version 6 of the IP suite. Drafted as a standard in 1998 to replace IPv4 and to resolve the impending IPv4 address exhaustion problem boasting significantly more usable host addresses and many smaller incremental improvements over the previous version 4. Only reaching maturity as an official `Internet Standard' in mid 2017, acceptance and adoption has been slow but is picking up much needed traction to eventually match and finally overtake the dated and problematic IPv4 in coming years.
+Following the massive success of IPv4 is version 6 of the IP suite. Drafted as a standard in 1998 to replace IPv4 and to resolve the impending IPv4 address exhaustion problem, boasting significantly more usable host addresses and many smaller incremental improvements over the previous version 4~\cite{hovav2004model}. Only reaching maturity as an official `Internet Standard' in mid 2017, acceptance and adoption has been slow but is picking up much needed traction to eventually match and finally overtake the dated and problematic IPv4 in coming years.
 
-        % Compare addressing schemes
-    \subsection{Terminology}
-    \todo{Should there be a glossary for this?}
-
+    % Compare addressing schemes
     \subsection{Addressing}
-    IPv4 packets allocate 32 bits for host addresses, for each source and destination. Given every combination of those values, it results in roughly 4.3 million address ($4.3 \times 10^{9}$ \textit{OR} $2^{32}$). Due to reserved groups and lack of foresight during the design phase, only about 3.7 million of those addresses are usable due to reserved allocation such as those defined in RFC 1918 and other wastage of various kinds.
+    IPv4 packets require 32 bits (4 bytes) for host addresses, one for each of source and destination. Given every combination of those values, it results in roughly 4.3 million address ($4.3 \times 10^{9}$ \textit{OR} $2^{32}$). Due to reserved groups and lack of foresight during the design phase, only about 3.7 million of those addresses are usable due to reserved allocation such as those defined in RFC 1918~\cite{rfc1918} and other wastage of various kinds.
 
-    IPv4 implements `Network Address Translation' (NAT) which is an ugly hack to compensate for the ever-growing demand for addresses, even after there are no more available. NAT works by translating one or more public facing addresses to many private addresses, bidirectionally. It has been twisted and contorted as it has evolved to allow many clients make simultaneous outgoing connections from behind the same IP address and even accept incoming connections given the correct configuration.
+    IPv4 implements `Network Address Translation' (NAT) which is a hack to compensate for the ever-growing demand for addresses, even after there are no more available. NAT works by translating one or more public facing addresses to many private addresses, bidirectionally. It has been modified and improved as it has evolved to allow many clients make simultaneous outgoing connections from behind the same IP address and even accept incoming connections given the correct configuration.
 
-    IPv6 \textit{addressess} the major caveat in version 4 of the protocol with much larger address values of 128 bits which results in roughly 340 undecillion ($3.4 \times 10^{38}$ \textit{OR} $2^{128}$) usable addresses. The available addressable space is so vast that currently only a small portion is available for public use and the smallest division that can be allocated by a provider is $2^{64}$ addresses.
+    IPv6 addresses one of the major caveat in version 4 of the protocol with much larger address values of 128 bits which results in roughly 340 undecillion ($3.4 \times 10^{38}$ \textit{OR} $2^{128}$) usable addresses. The available addressable space is so vast that currently only a small portion is available for public use and the smallest division that can be allocated by a provider is $2^{64}$ addresses.
 
     \subsection{Subnets}
-    Subnets are divisions of the whole IP space, useful for allocating pieces to the entities that own rights to them. Traditionally, subnets were defined `classfully' where the value of the address defined how large the network it belonged to was. Primarily there were three classes of varying sizes:
+    Subnets are divisions of the whole IP space, useful for allocating sections to the entities that own rights to them. Traditionally, subnets were defined `classfully' where the value of the address defined how large the network it belonged to was. Primarily there were three classes of varying sizes:
     \begin{itemize}
         \item{Class A occupied half of the IPv4 space ranging from \texttt{0.0.0.0/8} to \texttt{128.0.0.0/8}, consisting of 256 networks of $2^{24}$ hosts each.}
         \item{Class B defined $16,384$ networks, ranging from \texttt{128.0.0.0/16} to \texttt{191.0.0.0/16}, each with $65,536\ (2^{16})$ hosts.}
         \item{Class C boasted $2,097,152\ (2^{21})$ networks, each with only $256\ (2^{8})$ hosts.}
     \end{itemize}
 
-    It was originally planned to delegate various network segments to companies based on their requirements. Large enterprises such as DARPA, Ford, HP and Apple, at the time, were allocated a class A network whilst smaller companies were allowed class B and C portions.
+    It was originally planned to delegate various network segments to companies based on their requirements. Large enterprises such as DARPA, Ford, HP and Apple (at the time) were allocated a class A network each, whilst smaller companies were allowed class B and C portions.
 
     Introduced in 1993, `Classless Inter-Domain Routing' (CIDR) was introduced to permit more flexible network separation with the use of a \textit{variable-length subnet mask}. CIDR is denoted it two forms, either a binary representation such as \texttt{255.255.255.0} or as a decimal value preceded with a slash \texttt{xxx.xxx.xxx.xxx/24}. The value represented by the CIDR refers to the amount of bits that define the `network' portion of the address. The remainder of the bits in the address refer to the hosts in that network.
 
@@ -41,20 +38,20 @@ Following the massive success of IPv4 is version 6 of the IP suite. Drafted as a
             \item{The `broadcast address' is \texttt{192.168.8.255}}
             \item{The `subnet mask' is \texttt{255.255.255.0}}
             \item{There are 254 \textit{usable} host addresses}
-            \item{Hosts between \texttt{192.168.8.1} and \texttt{192.168.8.254}, inclusive, can be communicated with directly, without the need for a router/gateway}
+            \item{Hosts between the addresses \texttt{192.168.8.1} and \texttt{192.168.8.254}, inclusive, can be communicated with directly, without the need for a router/gateway}
         \end{itemize}
 
     % Explain what it is an how it works. interconnected graph, with routers
     \subsection{Routing}
-    Communications are exchanged between internet hosts through a process called `routing'. Packets are dispatched from the source and propogate through one router at a time until they arrive at their destination.
+    Communications are exchanged between internet hosts through a process called `routing'. Packets are dispatched from the source and propagate through one router at a time until they arrive at their destination.
+    
+    Routes are defined per-interface with a combination of an IP address and a `subnet mask' in CIDR form. Packets can be either delivered directly to the destination host if it resides within one of the local subnets, or via a router.
+    In the case of local addresses, the hardware address of the destination host is used for the \textit{link-layer} protocol, which is usually ethernet, and the packet is sent directly to that host.
+    Alternatively, if there is no local route available, the hardware address of the specified gateway host is used for the \textit{link-layer} instead and the packet is sent to the gateway, in the hope that it will forward the packet on to it's destination in another network.
 
-    Routes are defined per interface as a combination of an IP address and a `subnet mask' in CIDR form. Packets can be either delivered directly to the destination host, if it resides within one of the local subnets, or via a router.
-    In the case of local addresses, the hardware address of the destination host is used for the link-layer protocol, which is ususally ethernet, and the packet is sent directly to that host.
-    Alternatively, if there is no local route available, the hardware address of the specified gateway host is used for the link-layer instead and the packet is sent to the gateway, in the hope that it will forward the packet on.
+    Routers are internet hosts whose primary responsibility is to forward packets from one network to another. Often routers will know which networks they are neighbouring so can with reasonable accuracy choose a short route for any given packet. In the case of large networks such as the internet, packets will `hop' from one router to the next, following the routes that match the destination IP address until the packets reaches the destination subnet and ultimately the destination host addressed by the packet.
 
-    Routers are internet hosts primarily to forward packets from one network to another. Often routers will know which networks they are neighbouring so can with reasonable accuracy choose a short route for any given packet. In the case of large networks such as the internet, packets will `hop' from one router to the next, following the routes that match the destination IP address until the packets reaches the destination subnet and ultimately the destination host addressed by the packet.
+    IP makes no guarantees about packet delivery, instead it operates on a `best effort' policy; all a router can do is attempt to forward the packet on assuming that it will eventually arrive at it's final destination.
 
-    IP makes no guarantees about packet delivery, instead it operates on a `best effort' policy; all a router can do is attempt to forward the packet on in the hope that it will eventually arrive at it's final destination.
-
-    Routing is used in many different ways depending on the use case. End-user clients such as personal computers attached to small private networks typically are only aware of a single `route', via their local \textit{gateway} which are dynamically assigned when the device connects to the network. A gateway is a router on the local subnet that can forward a packet toward it's final destination by one \textit{hop}.
+    End-user clients such as personal computers attached to small private networks typically are only aware of a single `route', via their local \textit{gateway} which are dynamically assigned when the device connects to the network. A gateway is a router on the local subnet that can forward a packet toward it's final destination by one \textit{hop}.
     Conversely, routers are largely interconnected devices which are permanently connected to many networks simultaneously. Known routes will be statically assigned, either manually or autonomously by a routing protocol, and forward packets between the various subnets, in effect connecting them together.
